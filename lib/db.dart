@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:appartement/model.dart/Model_apparte.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -6,10 +9,10 @@ import 'dart:async';
 class Baselocal {
   static connexion() async {
     final Future<Database> database = openDatabase(
-      join(await getDatabasesPath(), 'meetball.db'),
+      join(await getDatabasesPath(), 'imobilier.db'),
       onCreate: (db, version) async {
         db.execute(
-          "CREATE TABLE appartement (nom TEXT, ville TEXT, code_postal INTEGER, adresse TEXT, revenu_locatif INTEGER, prix INTEGER, impot foncier INTEGER, assurance INTEGER, frais INTEGER,surface INTEGER)",
+          "CREATE TABLE appartement (id INTEGER PRIMARY KEY autoincrement, nom TEXT, ville TEXT, code_postal TEXT, adresse TEXT, revenu_locatif TEXT, prix TEXT, impot_foncier TEXT, assurance TEXT, frais TEXT,surface TEXT)",
         );
       },
       version: 1,
@@ -17,38 +20,46 @@ class Baselocal {
     return await database;
   }
 
-  new_apparte(
-      String nom,
-      String adresse,
-      int code_postal,
-      String ville,
-      int revenu_locatif,
-      int prix,
-      int impot_foncier,
-      int assurence,
-      int frais,
-      int surface) async {
+  new_apparte(Appartement_Model appartement) async {
     final Database db = await connexion();
     Map<String, dynamic> apparte = {
-      "nom": nom,
-      "adresse": adresse,
-      "code_postal": code_postal,
-      "ville": ville,
-      "revenu_locatif": revenu_locatif,
-      "prix": prix,
-      "impot_foncier": impot_foncier,
-      "assurence": assurence,
-      "frais": frais,
-      "surface": surface
+      "nom": appartement.nom,
+      "adresse": appartement.adresse,
+      "code_postal": appartement.postal_code,
+      "ville": appartement.ville,
+      "revenu_locatif": appartement.revenu_locatif,
+      "prix": appartement.prix,
+      "impot_foncier": appartement.impot_foncier,
+      "assurance": appartement.assurance,
+      "frais": appartement.frais,
+      "surface": appartement.surface
     };
     await db.insert("appartement", apparte);
   }
 
-  apparte() async {
+  Future<List<Appartement_Model>> apparte() async {
     final Database db = await connexion();
 
     List tkt = await db.query('appartement');
+    List<Appartement_Model> list_appart = [];
 
-    return tkt;
+    for (var i = 0; i < tkt.length; i++) {
+      Appartement_Model appartement = Appartement_Model();
+      appartement.id = tkt[i]['id'];
+      appartement.nom = tkt[i]['nom'];
+      appartement.adresse = tkt[i]['adresse'];
+      appartement.postal_code = tkt[i]['code_postal'];
+      appartement.ville = tkt[i]['ville'];
+      appartement.revenu_locatif = tkt[i]['revenu_locatif'];
+      appartement.prix = tkt[i]['prix'];
+      appartement.impot_foncier = tkt[i]['impot_foncier'];
+      appartement.assurance = tkt[i]['assurance'];
+      appartement.frais = tkt[i]['frais'];
+      appartement.surface = tkt[i]['surface'];
+
+      list_appart.add(appartement);
+    }
+    log(list_appart.toString());
+    return list_appart;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:appartement/accueil.dart';
 import 'package:appartement/ajouter_apparte.dart';
+import 'package:appartement/list_appart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -31,6 +32,7 @@ class _MainState extends State<Main> {
       routes: {
         '/': (context) => const Accueil(),
         '/ajouter_apparte': (context) => const Ajouter_apparte(),
+        '/list_appart': (context) => const List_Appart(),
       },
       theme: ThemeData(
         // Define the default brightness and colors.

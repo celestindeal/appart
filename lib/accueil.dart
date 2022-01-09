@@ -1,5 +1,8 @@
 // ignore_for_file: file_names
 
+import 'dart:developer';
+
+import 'package:appartement/db.dart';
 import 'package:appartement/main.dart';
 import 'package:flutter/material.dart';
 
@@ -30,6 +33,16 @@ class _AccueilState extends State<Accueil> {
               },
               icon: const Icon(Icons.golf_course),
             ),
+            Center(
+              child: FlatButton(
+                  onPressed: () async {
+                    Navigator.pushNamed(context, '/list_appart');
+                  },
+                  child: Text(
+                    'Affihage',
+                    style: Theme.of(context).textTheme.headline6,
+                  )),
+            )
           ],
         ),
       ),
