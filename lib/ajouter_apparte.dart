@@ -19,17 +19,17 @@ Appartement_Model apparte = Appartement_Model();
 // ignore: camel_case_types
 class _Ajouter_apparteState extends State<Ajouter_apparte> {
   Widget _buildPopupDialog(BuildContext context) {
-    return new AlertDialog(
+    return AlertDialog(
       title: const Text('Problème'),
-      content: new Column(
+      content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text("Tu n'as pas rempli de formulaire correctement"),
+        children: const <Widget>[
+          Text("Tu n'as pas rempli de formulaire correctement"),
         ],
       ),
       actions: <Widget>[
-        new FlatButton(
+        FlatButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -45,14 +45,14 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-            icon: Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back),
             onPressed: () {
               Navigator.pushNamedAndRemoveUntil(
                   context, '/', (Route<dynamic> route) => false);
             }),
       ),
       body: Center(
-        child: Container(
+        child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.85,
           width: MediaQuery.of(context).size.width * 0.85,
           child: ListView(

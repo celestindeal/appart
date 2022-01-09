@@ -20,7 +20,7 @@ class _List_AppartState extends State<List_Appart> {
     return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-              icon: Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back),
               onPressed: () {
                 Navigator.pushNamedAndRemoveUntil(
                     context, '/', (Route<dynamic> route) => false);
@@ -43,8 +43,7 @@ class _List_AppartState extends State<List_Appart> {
                             profil_appart = appart;
                             Navigator.pushNamed(context, '/profil_appart');
                           },
-                          child:
-                              Container(height: 30, child: Text(appart.nom))),
+                          child: SizedBox(height: 30, child: Text(appart.nom))),
                     );
                   });
             } else {

@@ -1,9 +1,10 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:developer';
 
 import 'package:appartement/model.dart/Model_apparte.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 
 class Baselocal {
@@ -47,7 +48,7 @@ class Baselocal {
     final Database db = await connexion();
 
     List tkt = await db.query('appartement');
-    List<Appartement_Model> list_appart = [];
+    List<Appartement_Model> listAppart = [];
 
     for (var i = 0; i < tkt.length; i++) {
       Appartement_Model appartement = Appartement_Model();
@@ -63,9 +64,9 @@ class Baselocal {
       appartement.frais = tkt[i]['frais'];
       appartement.surface = tkt[i]['surface'];
 
-      list_appart.add(appartement);
+      listAppart.add(appartement);
     }
-    log(list_appart.toString());
-    return list_appart;
+    log(listAppart.toString());
+    return listAppart;
   }
 }

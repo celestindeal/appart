@@ -1,7 +1,5 @@
-// ignore: file_names
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, camel_case_types, file_names
 
-import 'package:flutter/material.dart';
 import 'dart:developer';
 
 class Appartement_Model {
@@ -31,11 +29,11 @@ class Appartement_Model {
   ) {
     this.nom = nom;
     this.adresse = adresse;
-    this.postal_code = postalCode;
+    postal_code = postalCode;
     this.ville = ville;
-    this.revenu_locatif = revenuLocatif;
+    revenu_locatif = revenuLocatif;
     this.prix = prix;
-    this.impot_foncier = impotFoncier;
+    impot_foncier = impotFoncier;
     assurance = assurence;
     this.frais = frais;
     this.surface = surface;

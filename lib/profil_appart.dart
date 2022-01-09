@@ -128,7 +128,6 @@ class _Profil_appartState extends State<Profil_appart> {
   Widget _fiche_techinque(BuildContext context, int mois) {
     // calcule
     double resultat = (loyer * mois) - (impot + frais + assurance);
-    double renboursement = prix / resultat;
     double prixAchat = 15 * resultat;
     return AlertDialog(
       title: Text('Fiche technique sur ' + mois.toString() + " mois"),

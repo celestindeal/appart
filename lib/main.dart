@@ -19,6 +19,7 @@ class Main extends StatefulWidget {
 
 double hauteurApp = 0;
 double largueurApp = 0;
+// ignore: non_constant_identifier_names
 Appartement_Model profil_appart = Appartement_Model();
 
 class _MainState extends State<Main> {
@@ -36,7 +37,7 @@ class _MainState extends State<Main> {
         '/': (context) => const Accueil(),
         '/ajouter_apparte': (context) => const Ajouter_apparte(),
         '/list_appart': (context) => const List_Appart(),
-        '/profil_appart': (context) => Profil_appart(),
+        '/profil_appart': (context) => const Profil_appart(),
       },
       theme: ThemeData(
         // Define the default brightness and colors.

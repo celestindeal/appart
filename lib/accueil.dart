@@ -1,8 +1,5 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, deprecated_member_use
 
-import 'dart:developer';
-
-import 'package:appartement/db.dart';
 import 'package:appartement/main.dart';
 import 'package:flutter/material.dart';
 
