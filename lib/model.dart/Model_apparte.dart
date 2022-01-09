@@ -1,53 +1,56 @@
+// ignore: file_names
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'dart:developer';
 
 class Appartement_Model {
   int id = 0;
-  String nom = 'nom';
+  String nom = '';
   String adresse = '';
-  String postal_code = '';
+  String postal_code = '0';
   String ville = '';
-  String revenu_locatif = '';
-  String prix = '';
-  String impot_foncier = '';
-  String assurance = '';
-  String frais = '';
-  String surface = '';
+  String revenu_locatif = '0';
+  String prix = '0';
+  String impot_foncier = '0';
+  String assurance = '0';
+  String frais = '0';
+  String surface = '0';
 
   Terrain_Model(
     String nom,
     String adresse,
-    String postal_code,
+    String postalCode,
     String ville,
-    String revenu_locatif,
+    String revenuLocatif,
     String prix,
-    String impot_foncier,
+    String impotFoncier,
     String assurence,
     String frais,
     String surface,
   ) {
     this.nom = nom;
     this.adresse = adresse;
-    this.postal_code = postal_code;
+    this.postal_code = postalCode;
     this.ville = ville;
-    this.revenu_locatif = revenu_locatif;
+    this.revenu_locatif = revenuLocatif;
     this.prix = prix;
-    this.impot_foncier = impot_foncier;
-    this.assurance = assurence;
+    this.impot_foncier = impotFoncier;
+    assurance = assurence;
     this.frais = frais;
     this.surface = surface;
   }
 
   imprimer() {
-    log(this.nom);
-    log(this.adresse);
-    log(this.postal_code);
-    log(this.ville);
-    log(this.revenu_locatif.toString());
-    log(this.prix.toString());
-    log(this.impot_foncier.toString());
-    log(this.assurance.toString());
-    log(this.frais.toString());
-    log(this.surface.toString());
+    log(nom);
+    log(adresse);
+    log(postal_code);
+    log(ville);
+    log(revenu_locatif.toString());
+    log(prix.toString());
+    log(impot_foncier.toString());
+    log(assurance.toString());
+    log(frais.toString());
+    log(surface.toString());
   }
 }

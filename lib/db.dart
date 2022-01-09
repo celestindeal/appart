@@ -37,6 +37,12 @@ class Baselocal {
     await db.insert("appartement", apparte);
   }
 
+  delete_appart(int id) async {
+    final Database db = await connexion();
+
+    db.delete('appartement', where: 'id = $id');
+  }
+
   Future<List<Appartement_Model>> apparte() async {
     final Database db = await connexion();
 

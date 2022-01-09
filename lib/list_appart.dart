@@ -39,7 +39,12 @@ class _List_AppartState extends State<List_Appart> {
                     return Card(
                       elevation: 8,
                       child: GestureDetector(
-                          onTap: () {}, child: Text(appart.nom)),
+                          onTap: () {
+                            profil_appart = appart;
+                            Navigator.pushNamed(context, '/profil_appart');
+                          },
+                          child:
+                              Container(height: 30, child: Text(appart.nom))),
                     );
                   });
             } else {

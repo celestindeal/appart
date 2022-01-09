@@ -1,13 +1,11 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, deprecated_member_use
 import 'dart:developer';
 
 import 'package:appartement/db.dart';
-import 'package:appartement/main.dart';
 import 'package:appartement/model.dart/Model_apparte.dart';
 import 'package:flutter/material.dart';
 
-bool _passwordVisible = false;
-
+// ignore: camel_case_types
 class Ajouter_apparte extends StatefulWidget {
   const Ajouter_apparte({Key? key}) : super(key: key);
 
@@ -18,7 +16,30 @@ class Ajouter_apparte extends StatefulWidget {
 final _formKey = GlobalKey<FormState>();
 Appartement_Model apparte = Appartement_Model();
 
+// ignore: camel_case_types
 class _Ajouter_apparteState extends State<Ajouter_apparte> {
+  Widget _buildPopupDialog(BuildContext context) {
+    return new AlertDialog(
+      title: const Text('Problème'),
+      content: new Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text("Tu n'as pas rempli de formulaire correctement"),
+        ],
+      ),
+      actions: <Widget>[
+        new FlatButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          textColor: Theme.of(context).primaryColor,
+          child: const Text('Fermer'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,9 +184,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.nom = value;
+                              apparte.adresse = value;
                             } else {
-                              apparte.nom = '0';
+                              apparte.adresse = '0';
                             }
                           },
                         ),
@@ -319,6 +340,40 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                               fontSize: 22.0, color: Colors.white),
                           decoration: InputDecoration(
                             filled: true,
+                            hintText: "assurance",
+                            contentPadding: const EdgeInsets.only(
+                                left: 14.0, bottom: 8.0, top: 8.0),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.white),
+                              borderRadius: BorderRadius.circular(25.7),
+                            ),
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.white),
+                              borderRadius: BorderRadius.circular(25.7),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty) {
+                              apparte.assurance = value;
+                            } else {
+                              apparte.assurance = '0';
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Theme(
+                        data: Theme.of(context)
+                            .copyWith(splashColor: Colors.transparent),
+                        child: TextFormField(
+                          keyboardType: TextInputType.number,
+                          autofocus: false,
+                          style: const TextStyle(
+                              fontSize: 22.0, color: Colors.white),
+                          decoration: InputDecoration(
+                            filled: true,
                             hintText: "frais",
                             contentPadding: const EdgeInsets.only(
                                 left: 14.0, bottom: 8.0, top: 8.0),
@@ -345,10 +400,24 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                       child: FlatButton(
                           onPressed: () async {
                             log('début de la fonction');
-
-                            await Baselocal().new_apparte(apparte);
-                            Navigator.pushNamedAndRemoveUntil(
-                                context, '/', (Route<dynamic> route) => false);
+                            if (apparte.frais == '0' ||
+                                apparte.assurance == '0' ||
+                                apparte.impot_foncier == '0' ||
+                                apparte.surface == '0' ||
+                                apparte.revenu_locatif == '0' ||
+                                apparte.nom == '' ||
+                                apparte.prix == '0') {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) =>
+                                    _buildPopupDialog(context),
+                              );
+                            } else {
+                              log('validation des critère');
+                              await Baselocal().new_apparte(apparte);
+                              Navigator.pushNamedAndRemoveUntil(context, '/',
+                                  (Route<dynamic> route) => false);
+                            }
                           },
                           child: Text(
                             'Ajouter',
