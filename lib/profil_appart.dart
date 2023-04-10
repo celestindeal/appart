@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:appartement/db.dart';
+import 'package:appartement/model.dart/db.dart';
 import 'package:appartement/main.dart';
 import 'package:flutter/material.dart';
 

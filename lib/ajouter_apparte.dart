@@ -1,9 +1,12 @@
 // ignore_for_file: file_names, deprecated_member_use
 import 'dart:developer';
 
-import 'package:appartement/db.dart';
+import 'package:appartement/MyFooter.dart';
+import 'package:appartement/model.dart/db.dart';
 import 'package:appartement/model.dart/Model_apparte.dart';
 import 'package:flutter/material.dart';
+
+import 'main.dart';
 
 // ignore: camel_case_types
 class Ajouter_apparte extends StatefulWidget {
@@ -13,11 +16,24 @@ class Ajouter_apparte extends StatefulWidget {
   State<Ajouter_apparte> createState() => _Ajouter_apparteState();
 }
 
-final _formKey = GlobalKey<FormState>();
-Appartement_Model apparte = Appartement_Model();
+// Appartement_Model apparte = Appartement_Model();
 
 // ignore: camel_case_types
 class _Ajouter_apparteState extends State<Ajouter_apparte> {
+  var nom;
+
+  var prix;
+
+  var frais;
+
+  var revenu_locatif;
+
+  var surface;
+
+  var assurance;
+
+  var impot_foncier;
+  final _formKey = GlobalKey<FormState>();
   Widget _buildPopupDialog(BuildContext context) {
     return AlertDialog(
       title: const Text('Problème'),
@@ -42,14 +58,6 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(
-                  context, '/', (Route<dynamic> route) => false);
-            }),
-      ),
       body: Center(
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.85,
@@ -86,107 +94,7 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                             ),
                           ),
                           onChanged: (value) {
-                            apparte.nom = value;
-                          },
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Theme(
-                        data: Theme.of(context)
-                            .copyWith(splashColor: Colors.transparent),
-                        child: TextFormField(
-                          keyboardType: TextInputType.number,
-                          autofocus: false,
-                          style: const TextStyle(
-                              fontSize: 22.0, color: Colors.white),
-                          decoration: InputDecoration(
-                            filled: true,
-                            hintText: "code postal",
-                            contentPadding: const EdgeInsets.only(
-                                left: 14.0, bottom: 8.0, top: 8.0),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(25.7),
-                            ),
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(25.7),
-                            ),
-                          ),
-                          onChanged: (value) {
-                            if (value.isNotEmpty) {
-                              apparte.postal_code = value;
-                            } else {
-                              apparte.postal_code = '0';
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Theme(
-                        data: Theme.of(context)
-                            .copyWith(splashColor: Colors.transparent),
-                        child: TextFormField(
-                          autofocus: false,
-                          style: const TextStyle(
-                              fontSize: 22.0, color: Colors.white),
-                          decoration: InputDecoration(
-                            filled: true,
-                            hintText: "ville",
-                            contentPadding: const EdgeInsets.only(
-                                left: 14.0, bottom: 8.0, top: 8.0),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(25.7),
-                            ),
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(25.7),
-                            ),
-                          ),
-                          onChanged: (value) {
-                            if (value.isNotEmpty) {
-                              apparte.ville = value;
-                            } else {
-                              apparte.ville = '0';
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Theme(
-                        data: Theme.of(context)
-                            .copyWith(splashColor: Colors.transparent),
-                        child: TextFormField(
-                          autofocus: false,
-                          style: const TextStyle(
-                              fontSize: 22.0, color: Colors.white),
-                          decoration: InputDecoration(
-                            filled: true,
-                            hintText: "adresse",
-                            contentPadding: const EdgeInsets.only(
-                                left: 14.0, bottom: 8.0, top: 8.0),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(25.7),
-                            ),
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(25.7),
-                            ),
-                          ),
-                          onChanged: (value) {
-                            if (value.isNotEmpty) {
-                              apparte.adresse = value;
-                            } else {
-                              apparte.adresse = '0';
-                            }
+                            nom = value;
                           },
                         ),
                       ),
@@ -217,9 +125,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.prix = value;
+                              prix = value;
                             } else {
-                              apparte.prix = '0';
+                              prix = '0';
                             }
                           },
                         ),
@@ -251,9 +159,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.surface = value;
+                              surface = value;
                             } else {
-                              apparte.surface = '0';
+                              surface = '0';
                             }
                           },
                         ),
@@ -285,9 +193,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.revenu_locatif = value;
+                              revenu_locatif = value;
                             } else {
-                              apparte.revenu_locatif = '0';
+                              revenu_locatif = '0';
                             }
                           },
                         ),
@@ -319,9 +227,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.impot_foncier = value;
+                              impot_foncier = value;
                             } else {
-                              apparte.impot_foncier = '0';
+                              impot_foncier = '0';
                             }
                           },
                         ),
@@ -353,9 +261,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.assurance = value;
+                              assurance = value;
                             } else {
-                              apparte.assurance = '0';
+                              assurance = '0';
                             }
                           },
                         ),
@@ -387,9 +295,9 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           ),
                           onChanged: (value) {
                             if (value.isNotEmpty) {
-                              apparte.frais = value;
+                              frais = value;
                             } else {
-                              apparte.frais = '0';
+                              frais = '0';
                             }
                           },
                         ),
@@ -399,13 +307,13 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                       child: TextButton(
                           onPressed: () async {
                             log('début de la fonction');
-                            if (apparte.frais == '0' ||
-                                apparte.assurance == '0' ||
-                                apparte.impot_foncier == '0' ||
-                                apparte.surface == '0' ||
-                                apparte.revenu_locatif == '0' ||
-                                apparte.nom == '' ||
-                                apparte.prix == '0') {
+                            if (frais == '0' ||
+                                assurance == '0' ||
+                                impot_foncier == '0' ||
+                                surface == '0' ||
+                                revenu_locatif == '0' ||
+                                nom == '' ||
+                                prix == '0') {
                               showDialog(
                                 context: context,
                                 builder: (BuildContext context) =>
@@ -413,7 +321,15 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                               );
                             } else {
                               log('validation des critère');
-                              await Baselocal().new_apparte(apparte);
+                              Appartement_Model apparte = Appartement_Model();
+                              apparte.nom = nom;
+                              apparte.prix = prix;
+                              apparte.surface = surface;
+                              apparte.revenu_locatif = revenu_locatif;
+                              apparte.impot_foncier = impot_foncier;
+                              apparte.assurance = assurance;
+                              apparte.frais = frais;
+                              await baselocal.new_apparte(apparte);
                               Navigator.pushNamedAndRemoveUntil(context, '/',
                                   (Route<dynamic> route) => false);
                             }
@@ -430,6 +346,7 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
           ),
         ),
       ),
+      bottomNavigationBar: MyFooter(),
     );
   }
 }

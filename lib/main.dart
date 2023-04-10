@@ -1,7 +1,9 @@
 import 'package:appartement/accueil.dart';
 import 'package:appartement/ajouter_apparte.dart';
+import 'package:appartement/LoanCalculator.dart';
 import 'package:appartement/list_appart.dart';
 import 'package:appartement/model.dart/Model_apparte.dart';
+import 'package:appartement/model.dart/db.dart';
 import 'package:appartement/profil_appart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +21,7 @@ class Main extends StatefulWidget {
 
 double hauteurApp = 0;
 double largueurApp = 0;
+Baselocal baselocal = Baselocal();
 // ignore: non_constant_identifier_names
 Appartement_Model profil_appart = Appartement_Model();
 
@@ -32,12 +35,13 @@ class _MainState extends State<Main> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: '/bank',
       routes: {
         '/': (context) => const Accueil(),
         '/ajouter_apparte': (context) => const Ajouter_apparte(),
         '/list_appart': (context) => const List_Appart(),
         '/profil_appart': (context) => const Profil_appart(),
+        '/bank': (context) => LoanCalculator(),
       },
       theme: ThemeData(
         // Define the default brightness and colors.

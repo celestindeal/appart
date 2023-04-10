@@ -3,6 +3,7 @@
 import 'package:appartement/main.dart';
 import 'package:appartement/model.dart/Model_apparte.dart';
 import 'package:flutter/material.dart';
+import 'package:appartement/MyFooter.dart';
 
 class Accueil extends StatefulWidget {
   const Accueil({Key? key}) : super(key: key);
@@ -104,6 +105,16 @@ class _AccueilState extends State<Accueil> {
               children: [
                 Container(
                   height: MediaQuery.of(context).size.height * 0.15,
+                ),
+                Center(
+                  child: TextButton(
+                      onPressed: () async {
+                        Navigator.pushNamed(context, '/bank');
+                      },
+                      child: Text(
+                        "Calcule d'un prêt",
+                        style: Theme.of(context).textTheme.headline6,
+                      )),
                 ),
                 Center(
                   child: TextButton(
@@ -410,6 +421,7 @@ class _AccueilState extends State<Accueil> {
               : Container()
         ],
       ),
+      bottomNavigationBar: MyFooter(),
     );
   }
 }
