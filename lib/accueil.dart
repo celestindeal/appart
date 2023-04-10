@@ -14,6 +14,7 @@ class Accueil extends StatefulWidget {
 Appartement_Model apparte = Appartement_Model();
 // ignore: non_constant_identifier_names
 bool def_prix_achat = false;
+// ignore: non_constant_identifier_names
 bool def_renbourser = false;
 
 class _AccueilState extends State<Accueil> {
@@ -105,7 +106,7 @@ class _AccueilState extends State<Accueil> {
                   height: MediaQuery.of(context).size.height * 0.15,
                 ),
                 Center(
-                  child: FlatButton(
+                  child: TextButton(
                       onPressed: () async {
                         Navigator.pushNamed(context, '/ajouter_apparte');
                       },
@@ -115,7 +116,7 @@ class _AccueilState extends State<Accueil> {
                       )),
                 ),
                 Center(
-                  child: FlatButton(
+                  child: TextButton(
                       onPressed: () async {
                         Navigator.pushNamed(context, '/list_appart');
                       },

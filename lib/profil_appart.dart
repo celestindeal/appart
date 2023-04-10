@@ -106,7 +106,7 @@ class _Profil_appartState extends State<Profil_appart> {
           calcule(10),
           const Divider(color: Colors.white),
           Center(
-            child: FlatButton(
+            child: TextButton(
                 onPressed: () async {
                   showDialog(
                     context: context,
@@ -139,11 +139,10 @@ class _Profil_appartState extends State<Profil_appart> {
         ],
       ),
       actions: <Widget>[
-        FlatButton(
+        TextButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
-          textColor: Theme.of(context).primaryColor,
           child: const Text('Fermer'),
         ),
       ],
@@ -161,20 +160,18 @@ class _Profil_appartState extends State<Profil_appart> {
         ],
       ),
       actions: <Widget>[
-        FlatButton(
+        TextButton(
           onPressed: () async {
             await Baselocal().delete_appart(profil_appart.id);
             Navigator.pushNamedAndRemoveUntil(
                 context, '/list_appart', (Route<dynamic> route) => false);
           },
-          textColor: Theme.of(context).primaryColor,
           child: const Text('Oui vraiment'),
         ),
-        FlatButton(
+        TextButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
-          textColor: Theme.of(context).primaryColor,
           child: const Text('Fermer'),
         ),
       ],

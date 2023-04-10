@@ -29,11 +29,10 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
         ],
       ),
       actions: <Widget>[
-        FlatButton(
+        TextButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
-          textColor: Theme.of(context).primaryColor,
           child: const Text('Fermer'),
         ),
       ],
@@ -397,7 +396,7 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                       ),
                     ),
                     Center(
-                      child: FlatButton(
+                      child: TextButton(
                           onPressed: () async {
                             log('début de la fonction');
                             if (apparte.frais == '0' ||
