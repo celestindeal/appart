@@ -113,7 +113,7 @@ class _AccueilState extends State<Accueil> {
                       },
                       child: Text(
                         "Calcule d'un prêt",
-                        style: Theme.of(context).textTheme.headline6,
+                        style: Theme.of(context).textTheme.titleLarge,
                       )),
                 ),
                 Center(
@@ -123,7 +123,7 @@ class _AccueilState extends State<Accueil> {
                       },
                       child: Text(
                         'Ajouter un apparte',
-                        style: Theme.of(context).textTheme.headline6,
+                        style: Theme.of(context).textTheme.titleLarge,
                       )),
                 ),
                 Center(
@@ -133,7 +133,7 @@ class _AccueilState extends State<Accueil> {
                       },
                       child: Text(
                         'Affihage',
-                        style: Theme.of(context).textTheme.headline6,
+                        style: Theme.of(context).textTheme.titleLarge,
                       )),
                 ),
                 Padding(
@@ -370,12 +370,12 @@ class _AccueilState extends State<Accueil> {
                           children: [
                             Text(
                                 'Prix pour renbourser l emprunt sur 15 en auto fiancement (frais des la banque non pris en compte et taux 0) \n',
-                                style: Theme.of(context).textTheme.subtitle1,
+                                style: Theme.of(context).textTheme.titleMedium,
                                 overflow: TextOverflow.fade),
                             Text(
                               """ prixAchat = 15 * resultat  \n resultat = (loyer * mois) - (impot + frais + assurance)  
                                 """,
-                              style: Theme.of(context).textTheme.subtitle1,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ],
                         ),
@@ -405,12 +405,12 @@ class _AccueilState extends State<Accueil> {
                           children: [
                             Text(
                                 "Nombre d'année pour rembourser au prix donné  \n",
-                                style: Theme.of(context).textTheme.subtitle1,
+                                style: Theme.of(context).textTheme.titleMedium,
                                 overflow: TextOverflow.fade),
                             Text(
                               """ renboursement = prix / resultat   \n resultat = (loyer * mois) - (impot + frais + assurance)  
                                 """,
-                              style: Theme.of(context).textTheme.subtitle1,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ],
                         ),

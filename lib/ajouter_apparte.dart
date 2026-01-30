@@ -2,7 +2,7 @@
 import 'dart:developer';
 
 import 'package:appartement/MyFooter.dart';
-import 'package:appartement/model.dart/db.dart';
+
 import 'package:appartement/model.dart/Model_apparte.dart';
 import 'package:flutter/material.dart';
 
@@ -336,7 +336,7 @@ class _Ajouter_apparteState extends State<Ajouter_apparte> {
                           },
                           child: Text(
                             'Ajouter',
-                            style: Theme.of(context).textTheme.headline6,
+                            style: Theme.of(context).textTheme.titleLarge,
                           )),
                     )
                   ],

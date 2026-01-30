@@ -85,15 +85,15 @@ class _Profil_appartState extends State<Profil_appart> {
               Text("ville: " + profil_appart.ville),
               Text(
                 "prix: " + profil_appart.prix,
-                style: Theme.of(context).textTheme.bodyText1,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
               Text(
                 "revenu_locatif: " + profil_appart.revenu_locatif,
-                style: Theme.of(context).textTheme.bodyText1,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
               Text(
                 "impot_foncier: " + profil_appart.impot_foncier,
-                style: Theme.of(context).textTheme.bodyText1,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
               Text("assurance: " + profil_appart.assurance),
               Text("frais: " + profil_appart.frais),
@@ -116,7 +116,7 @@ class _Profil_appartState extends State<Profil_appart> {
                 },
                 child: Text(
                   'Supprimer',
-                  style: Theme.of(context).textTheme.headline6,
+                  style: Theme.of(context).textTheme.titleLarge,
                 )),
           ),
         ],

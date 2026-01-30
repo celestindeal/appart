@@ -49,11 +49,11 @@ class _MainState extends State<Main> {
         primaryColor: Colors.deepOrange[300],
         fontFamily: 'Georgia',
         textTheme: const TextTheme(
-          headline1: TextStyle(fontSize: 72.0, fontWeight: FontWeight.bold),
-          headline6: TextStyle(fontSize: 30.0, fontStyle: FontStyle.italic),
-          bodyText1: TextStyle(
+          displayLarge: TextStyle(fontSize: 72.0, fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(fontSize: 30.0, fontStyle: FontStyle.italic),
+          bodyLarge: TextStyle(
               fontSize: 14.0, fontFamily: 'Hind', color: Colors.deepOrange),
-          bodyText2: TextStyle(
+          bodyMedium: TextStyle(
               fontSize: 14.0, fontFamily: 'Hind', color: Colors.white),
         ),
       ),
