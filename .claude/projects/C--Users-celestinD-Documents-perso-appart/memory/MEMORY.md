@@ -1,0 +1,3 @@
+- [ImmoManager Project](project_immo_manager.md) — Real estate mgmt app: Flutter + .NET 8, clean arch, 6 feature modules
+- [User Profile](user_profile.md) — Celestin: real estate investor, wants senior-quality full-stack app in French
+- [French Comments](feedback_french_comments.md) — Always add French comments on every class/method for faster reading

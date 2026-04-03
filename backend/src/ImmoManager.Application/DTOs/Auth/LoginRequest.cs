@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ImmoManager.Application.DTOs.Auth;
 
+/// Données envoyées par le client pour se connecter.
 public class LoginRequest
 {
     [Required]

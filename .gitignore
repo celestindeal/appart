@@ -1,4 +1,6 @@
-# Miscellaneous
+# =========================
+# General
+# =========================
 *.class
 *.log
 *.pyc
@@ -8,19 +10,17 @@
 .buildlog/
 .history
 .svn/
+.vscode/
 
-# IntelliJ related
+# IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
+# =========================
+# Flutter / Dart (frontend/)
+# =========================
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -29,18 +29,35 @@
 .packages
 .pub-cache/
 .pub/
-/build/
+**/build/
+frontend/lib/generated_plugin_registrant.dart
 
-# Web related
-lib/generated_plugin_registrant.dart
-
-# Symbolication related
+# Symbolication / Obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Android Studio build artifacts
+frontend/android/app/debug
+frontend/android/app/profile
+frontend/android/app/release
+
+# Generated files
+**/*.g.dart
+**/*.freezed.dart
+
+# =========================
+# .NET (backend/)
+# =========================
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/*.suo
+backend/**/.vs/
+backend/**/*.db
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+*.env
+appsettings.Production.json

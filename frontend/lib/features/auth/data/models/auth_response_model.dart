@@ -1,6 +1,7 @@
 import 'user_model.dart';
 
-/// Modèle de réponse d'authentification (login / register).
+/// Modèle de réponse d'authentification retourné par le backend.
+/// Contient le JWT, le refresh token, la durée de validité et les infos utilisateur.
 class AuthResponseModel {
   final String accessToken;
   final String refreshToken;
@@ -14,12 +15,12 @@ class AuthResponseModel {
     required this.user,
   });
 
-  /// Crée un [AuthResponseModel] à partir d'une map JSON.
+  /// Parse la réponse JSON du backend (camelCase .NET) en objet Dart.
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
     return AuthResponseModel(
-      accessToken: json['access_token'] as String,
-      refreshToken: json['refresh_token'] as String,
-      expiresIn: json['expires_in'] as int,
+      accessToken: json['accessToken'] as String,
+      refreshToken: json['refreshToken'] as String,
+      expiresIn: json['expiresIn'] as int,
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
     );
   }

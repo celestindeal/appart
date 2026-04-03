@@ -36,7 +36,10 @@
       "Bash(dotnet tool:*)",
       "Bash(export PATH=\"$PATH:/c/Program Files/dotnet:$HOME/.dotnet/tools\")",
       "Bash(dotnet ef:*)",
-      "Bash(sqlite3 src/ImmoManager.Api/ImmoManager.db \".tables\")"
+      "Bash(sqlite3 src/ImmoManager.Api/ImmoManager.db \".tables\")",
+      "Bash(grep -v \"^\\\\.\\\\.$\")",
+      "Bash(grep -v \"^\\\\.$\")",
+      "Bash(taskkill //F //PID 3144)"
     ]
   }
 }

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ImmoManager.Application.DTOs.Auth;
 
+/// Données envoyées par le client pour créer un compte.
 public class RegisterRequest
 {
     [Required]

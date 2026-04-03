@@ -12,6 +12,8 @@ using ImmoManager.Infrastructure.Persistence;
 
 namespace ImmoManager.Infrastructure.Identity;
 
+/// Implémentation du service d'authentification.
+/// Gère le login, register, refresh token et logout avec JWT + BCrypt.
 public class AuthService : IAuthService
 {
     private readonly ImmoManagerDbContext _context;
@@ -23,6 +25,8 @@ public class AuthService : IAuthService
         _jwtSettings = jwtSettings.Value;
     }
 
+    /// Vérifie l'email et le mot de passe, met à jour la date de dernière connexion,
+    /// puis génère un JWT + refresh token.
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email)
@@ -37,6 +41,8 @@ public class AuthService : IAuthService
         return await GenerateAuthResponse(user);
     }
 
+    /// Vérifie que l'email n'est pas déjà pris, hash le mot de passe avec BCrypt,
+    /// crée l'utilisateur en base puis génère les tokens.
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
@@ -58,6 +64,8 @@ public class AuthService : IAuthService
         return await GenerateAuthResponse(user);
     }
 
+    /// Cherche le refresh token en base (non révoqué, non expiré),
+    /// le révoque puis génère une nouvelle paire de tokens.
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
         var storedToken = await _context.RefreshTokens
@@ -71,6 +79,20 @@ public class AuthService : IAuthService
         return await GenerateAuthResponse(storedToken.User);
     }
 
+    /// Révoque un refresh token spécifique (si il existe et n'est pas déjà révoqué).
+    public async Task RevokeTokenAsync(string refreshToken)
+    {
+        var storedToken = await _context.RefreshTokens
+            .FirstOrDefaultAsync(r => r.Token == refreshToken && !r.IsRevoked);
+
+        if (storedToken != null)
+        {
+            storedToken.IsRevoked = true;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    /// Révoque tous les refresh tokens actifs d'un utilisateur (déconnexion complète).
     public async Task LogoutAsync(string userId)
     {
         var tokens = await _context.RefreshTokens
@@ -83,6 +105,25 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
     }
 
+    /// Récupère le profil utilisateur par ID. Renvoie null si l'utilisateur n'existe pas ou est inactif.
+    public async Task<UserDto?> GetCurrentUserAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null || !user.IsActive) return null;
+
+        return new UserDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            PhoneNumber = user.PhoneNumber,
+            ProfileImageUrl = user.ProfileImageUrl,
+        };
+    }
+
+    /// Génère la réponse d'auth complète : crée un JWT, un refresh token,
+    /// sauvegarde le refresh token en base et renvoie le tout avec les infos user.
     private async Task<AuthResponse> GenerateAuthResponse(User user)
     {
         var accessToken = GenerateJwtToken(user);
@@ -101,13 +142,20 @@ public class AuthService : IAuthService
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresIn = _jwtSettings.ExpirationMinutes * 60,
-            UserId = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
+                ProfileImageUrl = user.ProfileImageUrl,
+            },
         };
     }
 
+    /// Crée un JWT signé avec les claims de l'utilisateur (id, email, prénom, nom).
+    /// La durée de validité est définie dans JwtSettings.ExpirationMinutes (24h = 1440 min).
     private string GenerateJwtToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
@@ -132,6 +180,7 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// Génère un refresh token aléatoire de 64 octets encodé en Base64.
     private static string GenerateRefreshToken()
     {
         var randomBytes = new byte[64];
