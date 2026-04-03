@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree /c/Users/celestinD/Documents/perso/appart/lib -I *.lock)",
+      "Bash(flutter --version)",
+      "Bash(dotnet --version)",
+      "Bash(winget install:*)",
+      "Bash(find backend:*)",
+      "Bash(curl -sL \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Light.ttf\" -o Poppins-Light.ttf)",
+      "Bash(curl -sL \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Regular.ttf\" -o Poppins-Regular.ttf)",
+      "Bash(curl -sL \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf\" -o Poppins-Medium.ttf)",
+      "Bash(curl -sL \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-SemiBold.ttf\" -o Poppins-SemiBold.ttf)",
+      "Bash(curl -sL \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf\" -o Poppins-Bold.ttf)",
+      "Bash(find /c/Users/celestinD/Documents/perso/appart/backend/src -name \"Class1.cs\" -delete)",
+      "Bash(find backend/src/ImmoManager.Infrastructure -name *.cs)",
+      "Bash(find backend/src/ImmoManager.Application -name *.cs)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(sqlcmd -?)",
+      "Bash(psql --version)",
+      "Bash(winget list:*)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/dotnet\")",
+      "Bash(dotnet build:*)",
+      "Bash(sqlcmd -S localhost -E -Q \"SELECT @@VERSION\")",
+      "Bash(psql -U postgres -c \"SELECT 1\")",
+      "Bash(psql -U postgres -h localhost -c \"SELECT version\\(\\);\")",
+      "Bash(PGPASSWORD=postgres psql -U postgres -h localhost -c \"SELECT version\\(\\);\")",
+      "Bash(sc query:*)",
+      "Bash(net start:*)",
+      "Bash(dotnet remove:*)",
+      "Bash(dotnet add:*)",
+      "Bash(PGPASSWORD=postgres psql -U postgres -h localhost -p 5432 -c \"CREATE DATABASE \"\"ImmoManagerDb\"\";\")",
+      "Bash(psql -U postgres -h localhost -p 5432 -c \"SELECT 1\")",
+      "Bash(psql -U celestinD -h localhost -p 5432 -d postgres -c \"SELECT 1\")",
+      "Bash(PGPASSWORD=Password psql -U postgres -h localhost -p 5432 -c \"SELECT version\\(\\);\")",
+      "Bash(dotnet tool:*)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/dotnet:$HOME/.dotnet/tools\")",
+      "Bash(dotnet ef:*)",
+      "Bash(sqlite3 src/ImmoManager.Api/ImmoManager.db \".tables\")"
+    ]
+  }
+}

@@ -1,62 +1,49 @@
-import 'package:appartement/accueil.dart';
-import 'package:appartement/ajouter_apparte.dart';
-import 'package:appartement/LoanCalculator.dart';
-import 'package:appartement/list_appart.dart';
-import 'package:appartement/model.dart/Model_apparte.dart';
-import 'package:appartement/model.dart/db.dart';
-import 'package:appartement/profil_appart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:immo_manager/features/auth/data/datasources/AuthRemoteDataSourceImpl.dart';
+import 'package:immo_manager/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:immo_manager/features/auth/presentation/providers/auth_provider.dart';
 
-void main() {
-  runApp(const Main());
-}
+import 'package:intl/date_symbol_data_local.dart';
+import 'config/routes/app_routes.dart';
+import 'config/theme/app_theme.dart';
+import 'config/constants/app_constants.dart';
 
-class Main extends StatefulWidget {
-  const Main({Key? key}) : super(key: key);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  @override
-  _MainState createState() => _MainState();
-}
+  await initializeDateFormatting('fr_FR', null);
 
-double hauteurApp = 0;
-double largueurApp = 0;
-Baselocal baselocal = Baselocal();
-// ignore: non_constant_identifier_names
-Appartement_Model profil_appart = Appartement_Model();
-
-class _MainState extends State<Main> {
-  @override
-  Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/bank',
-      routes: {
-        '/': (context) => const Accueil(),
-        '/ajouter_apparte': (context) => const Ajouter_apparte(),
-        '/list_appart': (context) => const List_Appart(),
-        '/profil_appart': (context) => const Profil_appart(),
-        '/bank': (context) => LoanCalculator(),
-      },
-      theme: ThemeData(
-        // Define the default brightness and colors.
-        brightness: Brightness.dark,
-        primaryColor: Colors.deepOrange[300],
-        fontFamily: 'Georgia',
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontSize: 72.0, fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(fontSize: 30.0, fontStyle: FontStyle.italic),
-          bodyLarge: TextStyle(
-              fontSize: 14.0, fontFamily: 'Hind', color: Colors.deepOrange),
-          bodyMedium: TextStyle(
-              fontSize: 14.0, fontFamily: 'Hind', color: Colors.white),
+  runApp(
+    ProviderScope(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          AuthRepositoryImpl(
+            remoteDataSource: AuthRemoteDataSourceImpl(),
+            secureStorage: FlutterSecureStorage(),
+          ),
         ),
-      ),
+      ],
+      child: const ImmoManagerApp(),
+    ),
+  );
+}
+
+class ImmoManagerApp extends ConsumerWidget {
+  const ImmoManagerApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      title: AppConstants.appName,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
+      routerConfig: appRouter,
+      locale: const Locale('fr', 'FR'),
     );
   }
 }

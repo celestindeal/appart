@@ -1,0 +1,12 @@
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\bin\Debug\net8.0\ImmoManager.Domain.deps.json
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\bin\Debug\net8.0\ImmoManager.Domain.dll
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\bin\Debug\net8.0\ImmoManager.Domain.pdb
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.AssemblyInfoInputs.cache
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.AssemblyInfo.cs
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.csproj.CoreCompileInputs.cache
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.sourcelink.json
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.dll
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\refint\ImmoManager.Domain.dll
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ImmoManager.Domain.pdb
+C:\Users\celestinD\Documents\perso\appart\backend\src\ImmoManager.Domain\obj\Debug\net8.0\ref\ImmoManager.Domain.dll

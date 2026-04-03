@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "QU52Awbm33p7DJFRXWr7fQdAwoXvrRDJMcRioQYkwkU=",
+  "Source": "ImmoManager.Api",
+  "BasePath": "_content/ImmoManager.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

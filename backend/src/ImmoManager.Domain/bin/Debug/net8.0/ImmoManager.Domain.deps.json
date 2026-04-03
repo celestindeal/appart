@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "ImmoManager.Domain/1.0.0": {
+        "runtime": {
+          "ImmoManager.Domain.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ImmoManager.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
