@@ -2,6 +2,7 @@ using ImmoManager.Domain.Enums;
 
 namespace ImmoManager.Application.DTOs.Properties;
 
+/// DTO de lecture d'un bien immobilier (renvoyé par l'API).
 public class PropertyDto
 {
     public Guid Id { get; set; }
@@ -12,8 +13,6 @@ public class PropertyDto
     public string? PostalCode { get; set; }
     public string City { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
     public PropertyType PropertyType { get; set; }
     public DateTime? AcquisitionDate { get; set; }
     public decimal AcquisitionPrice { get; set; }
@@ -28,6 +27,10 @@ public class PropertyDto
     public decimal? MonthlyCharges { get; set; }
     public bool IsRented { get; set; }
     public PropertyStatus Status { get; set; }
+
+    /// Nombre d'appartements (uniquement pour les immeubles).
+    public int? ApartmentCount { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

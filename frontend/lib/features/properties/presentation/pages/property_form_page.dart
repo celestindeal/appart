@@ -48,6 +48,11 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
   final _insuranceController = TextEditingController();
   final _chargesController = TextEditingController();
 
+  // Immeuble
+  final _apartmentCountController = TextEditingController();
+
+  bool _isSaving = false;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +80,7 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
       _taxController.text = property.propertyTax?.toStringAsFixed(0) ?? '';
       _insuranceController.text = property.insurance?.toStringAsFixed(0) ?? '';
       _chargesController.text = property.charges?.toStringAsFixed(0) ?? '';
+      _apartmentCountController.text = property.apartmentCount?.toString() ?? '';
       if (mounted) setState(() {});
     });
   }
@@ -96,6 +102,7 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
     _taxController.dispose();
     _insuranceController.dispose();
     _chargesController.dispose();
+    _apartmentCountController.dispose();
     super.dispose();
   }
 
@@ -124,6 +131,20 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
                 ),
                 const SizedBox(height: 16),
                 _buildDropdownField(),
+                // Champ nombre d'appartements, visible uniquement pour les immeubles.
+                if (_selectedType == PropertyType.building) ...[
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _apartmentCountController,
+                    label: 'Nombre d\'appartements',
+                    hint: 'Ex: 6',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: (v) => _selectedType == PropertyType.building
+                        ? Validators.validateRequired(v, fieldName: 'Le nombre d\'appartements')
+                        : null,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _descriptionController,
@@ -293,7 +314,7 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
             SizedBox(
               height: 50,
               child: ElevatedButton(
-                onPressed: _onSave,
+                onPressed: _isSaving ? null : _onSave,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.white,
@@ -301,10 +322,19 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  _isEditing ? 'Enregistrer les modifications' : 'Créer le bien',
-                  style: AppTextStyles.button.copyWith(color: AppColors.white),
-                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : Text(
+                        _isEditing ? 'Enregistrer les modifications' : 'Créer le bien',
+                        style: AppTextStyles.button.copyWith(color: AppColors.white),
+                      ),
               ),
             ),
             const SizedBox(height: 32),
@@ -408,21 +438,81 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
     );
   }
 
-  void _onSave() {
+  /// Sauvegarde le bien en appelant l'API (création ou modification).
+  /// Rafraîchit la liste des biens après succès et revient en arrière.
+  Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isSaving) return;
 
-    // La sauvegarde réelle serait effectuée via le repository/provider.
-    // Pour l'instant, on navigue simplement en arrière.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isEditing
-              ? 'Bien modifié avec succès'
-              : 'Bien créé avec succès',
-        ),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    context.pop();
+    setState(() => _isSaving = true);
+
+    try {
+      final now = DateTime.now();
+      final property = PropertyEntity(
+        id: widget.propertyId ?? '',
+        userId: '',
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim().isNotEmpty
+            ? _descriptionController.text.trim()
+            : null,
+        address: _addressController.text.trim(),
+        postalCode: _postalCodeController.text.trim(),
+        city: _cityController.text.trim(),
+        country: _countryController.text.trim(),
+        propertyType: _selectedType,
+        acquisitionPrice: double.tryParse(_priceController.text.trim()) ?? 0,
+        surface: double.tryParse(_surfaceController.text.trim()) ?? 0,
+        roomCount: int.tryParse(_roomsController.text.trim()),
+        bathroomCount: int.tryParse(_bathroomsController.text.trim()),
+        parkingSpaces: int.tryParse(_parkingController.text.trim()),
+        monthlyRent: double.tryParse(_rentController.text.trim()),
+        propertyTax: double.tryParse(_taxController.text.trim()),
+        insurance: double.tryParse(_insuranceController.text.trim()),
+        charges: double.tryParse(_chargesController.text.trim()),
+        apartmentCount: _selectedType == PropertyType.building
+            ? int.tryParse(_apartmentCountController.text.trim())
+            : null,
+        status: PropertyStatus.owned,
+        isRented: false,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final repository = ref.read(propertyRepositoryProvider);
+
+      if (_isEditing) {
+        await repository.updateProperty(property);
+      } else {
+        await repository.createProperty(property);
+      }
+
+      /// Rafraîchit la liste des biens pour afficher le nouveau bien.
+      ref.invalidate(propertiesListProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isEditing
+                  ? 'Bien modifié avec succès'
+                  : 'Bien créé avec succès',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur : ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImmoManager.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+da6cd95e2c3ab48fb78685b3a75bc05680086376")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3f399c03b3d8c80b1ac08a719e495b5b2273b2e2")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImmoManager.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImmoManager.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

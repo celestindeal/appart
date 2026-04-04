@@ -3,6 +3,7 @@ using ImmoManager.Domain.Enums;
 
 namespace ImmoManager.Application.DTOs.Properties;
 
+/// Données envoyées par le client pour modifier un bien existant.
 public class UpdatePropertyRequest
 {
     [Required]
@@ -27,15 +28,12 @@ public class UpdatePropertyRequest
     [MaxLength(100)]
     public string Country { get; set; } = string.Empty;
 
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
-
     [Required]
     public PropertyType PropertyType { get; set; }
 
     public DateTime? AcquisitionDate { get; set; }
 
-    [Range(0, double.MaxValue)]
+    [Range(0, (double)decimal.MaxValue)]
     public decimal AcquisitionPrice { get; set; }
 
     public decimal? CurrentValue { get; set; }
@@ -49,4 +47,7 @@ public class UpdatePropertyRequest
     public decimal? MonthlyCharges { get; set; }
     public bool IsRented { get; set; }
     public PropertyStatus Status { get; set; }
+
+    /// Nombre d'appartements (obligatoire si PropertyType == Building).
+    public int? ApartmentCount { get; set; }
 }

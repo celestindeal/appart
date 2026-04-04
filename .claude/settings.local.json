@@ -39,7 +39,10 @@
       "Bash(sqlite3 src/ImmoManager.Api/ImmoManager.db \".tables\")",
       "Bash(grep -v \"^\\\\.\\\\.$\")",
       "Bash(grep -v \"^\\\\.$\")",
-      "Bash(taskkill //F //PID 3144)"
+      "Bash(taskkill //F //PID 3144)",
+      "Bash(xargs grep:*)",
+      "Bash(taskkill //F //PID 540)",
+      "Bash(export PATH=\"$HOME/.dotnet/tools:$PATH\")"
     ]
   }
 }

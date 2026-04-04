@@ -29,6 +29,9 @@ public class Property : BaseEntity
     public bool IsRented { get; set; }
     public PropertyStatus Status { get; set; }
 
+    /// Nombre d'appartements dans l'immeuble (uniquement si PropertyType == Building).
+    public int? ApartmentCount { get; set; }
+
     // Navigation properties
     public User User { get; set; } = null!;
     public ICollection<Tenant> Tenants { get; set; } = new List<Tenant>();

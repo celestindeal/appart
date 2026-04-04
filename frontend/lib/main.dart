@@ -12,9 +12,12 @@ import 'core/network/interceptors/logging_interceptor.dart';
 import 'features/auth/data/datasources/auth_remote_datasource_impl.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/properties/data/datasources/property_remote_datasource_impl.dart';
+import 'features/properties/data/repositories/property_repository_impl.dart';
+import 'features/properties/presentation/providers/property_provider.dart';
 
 /// Point d'entrée de l'application.
-/// Initialise les dépendances (Dio, stockage sécurisé, repository auth)
+/// Initialise les dépendances (Dio, stockage sécurisé, repositories)
 /// puis lance l'app Flutter avec Riverpod.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,10 +55,19 @@ void main() async {
     secureStorage: secureStorage,
   );
 
+  // Source de données distante pour les biens immobiliers.
+  final propertyRemoteDatasource = PropertyRemoteDatasourceImpl(dio: dio);
+
+  // Repository des biens qui gère les appels API + calculs de rentabilité.
+  final propertyRepository = PropertyRepositoryImpl(
+    remoteDatasource: propertyRemoteDatasource,
+  );
+
   runApp(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(authRepository),
+        propertyRepositoryProvider.overrideWithValue(propertyRepository),
       ],
       child: const ImmoManagerApp(),
     ),
@@ -89,7 +101,9 @@ class ImmoManagerApp extends ConsumerWidget {
   }
 
   /// Lance la vérification d'auth une seule fois au démarrage.
+  /// En mode dev, on ne vérifie pas (pas besoin de se connecter).
   void _checkAuth(WidgetRef ref) {
+    if (AppConstants.devMode) return;
     final authState = ref.read(authStateProvider);
     if (authState is AuthInitial) {
       Future.microtask(

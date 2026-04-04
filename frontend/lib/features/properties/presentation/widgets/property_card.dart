@@ -295,14 +295,12 @@ class PropertyCard extends StatelessWidget {
     );
   }
 
+  /// Renvoie l'icône correspondant au type de bien.
   IconData _iconForType(PropertyType type) {
     return switch (type) {
       PropertyType.apartment => Icons.apartment,
-      PropertyType.house => Icons.house,
-      PropertyType.commercial => Icons.store,
-      PropertyType.land => Icons.terrain,
       PropertyType.building => Icons.business,
-      PropertyType.parking => Icons.local_parking,
+      PropertyType.other => Icons.home_work,
     };
   }
 }

@@ -6,6 +6,7 @@ using ImmoManager.Domain.Repositories;
 using ImmoManager.Infrastructure.Identity;
 using ImmoManager.Infrastructure.Persistence;
 using ImmoManager.Infrastructure.Persistence.Repositories;
+using ImmoManager.Infrastructure.Services;
 
 namespace ImmoManager.Infrastructure.DependencyInjection;
 
@@ -26,6 +27,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccountingRepository, AccountingRepository>();
         services.AddScoped<IContactRepository, ContactRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Services métier
+        services.AddScoped<IPropertyService, PropertyService>();
 
         // Identity / Auth
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));

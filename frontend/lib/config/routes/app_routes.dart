@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/app_constants.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -90,9 +91,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: RoutePaths.login,
+    initialLocation: AppConstants.devMode ? RoutePaths.dashboard : RoutePaths.login,
     debugLogDiagnostics: true,
     redirect: (context, state) {
+      // En mode dev, on ne redirige jamais → accès direct à toutes les pages.
+      if (AppConstants.devMode) return null;
+
       final isAuthenticated = authState is AuthAuthenticated;
       final isOnAuthPage = state.matchedLocation == RoutePaths.login ||
           state.matchedLocation == RoutePaths.register;

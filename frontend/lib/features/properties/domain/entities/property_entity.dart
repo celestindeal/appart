@@ -1,15 +1,14 @@
 import 'package:equatable/equatable.dart';
 
-/// Type de bien immobilier.
+/// Types de biens immobiliers.
 enum PropertyType {
   apartment('Appartement'),
-  house('Maison'),
-  commercial('Local commercial'),
-  land('Terrain'),
   building('Immeuble'),
-  parking('Parking');
+  other('Autre');
 
   const PropertyType(this.label);
+
+  /// Libellé en français affiché dans l'interface.
   final String label;
 }
 
@@ -20,10 +19,12 @@ enum PropertyStatus {
   sold('Vendu');
 
   const PropertyStatus(this.label);
+
+  /// Libellé en français affiché dans l'interface.
   final String label;
 }
 
-/// Entite representant un bien immobilier.
+/// Entité représentant un bien immobilier.
 class PropertyEntity extends Equatable {
   const PropertyEntity({
     required this.id,
@@ -51,6 +52,7 @@ class PropertyEntity extends Equatable {
     this.charges,
     this.monthlyExpenses,
     this.isRented = false,
+    this.apartmentCount,
   });
 
   final String id;
@@ -76,6 +78,10 @@ class PropertyEntity extends Equatable {
   final double? monthlyExpenses;
   final bool isRented;
   final PropertyStatus status;
+
+  /// Nombre d'appartements (uniquement pour les immeubles).
+  final int? apartmentCount;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -85,10 +91,10 @@ class PropertyEntity extends Equatable {
     return (monthlyRent! * 12) / acquisitionPrice * 100;
   }
 
-  /// Prix au metre carre.
-  double get pricePerSqm =>
-      surface > 0 ? acquisitionPrice / surface : 0;
+  /// Prix au mètre carré.
+  double get pricePerSqm => surface > 0 ? acquisitionPrice / surface : 0;
 
+  /// Copie l'entité en remplaçant les champs spécifiés.
   PropertyEntity copyWith({
     String? id,
     String? userId,
@@ -113,6 +119,7 @@ class PropertyEntity extends Equatable {
     double? monthlyExpenses,
     bool? isRented,
     PropertyStatus? status,
+    int? apartmentCount,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -140,6 +147,7 @@ class PropertyEntity extends Equatable {
       monthlyExpenses: monthlyExpenses ?? this.monthlyExpenses,
       isRented: isRented ?? this.isRented,
       status: status ?? this.status,
+      apartmentCount: apartmentCount ?? this.apartmentCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -147,30 +155,10 @@ class PropertyEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        name,
-        description,
-        address,
-        postalCode,
-        city,
-        country,
-        propertyType,
-        acquisitionDate,
-        acquisitionPrice,
-        currentValue,
-        surface,
-        roomCount,
-        bathroomCount,
-        parkingSpaces,
-        monthlyRent,
-        propertyTax,
-        insurance,
-        charges,
-        monthlyExpenses,
-        isRented,
-        status,
-        createdAt,
-        updatedAt,
+        id, userId, name, description, address, postalCode, city, country,
+        propertyType, acquisitionDate, acquisitionPrice, currentValue, surface,
+        roomCount, bathroomCount, parkingSpaces, monthlyRent, propertyTax,
+        insurance, charges, monthlyExpenses, isRented, status, apartmentCount,
+        createdAt, updatedAt,
       ];
 }

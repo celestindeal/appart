@@ -91,12 +91,6 @@ class PropertiesListPage extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   ...PropertyType.values
-                      .where((t) => const [
-                            PropertyType.apartment,
-                            PropertyType.house,
-                            PropertyType.commercial,
-                            PropertyType.land,
-                          ].contains(t))
                       .map(
                         (type) => Padding(
                           padding: const EdgeInsets.only(right: 8),
