@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Données résumées du tableau de bord.
+/// Données résumées du tableau de bord (compteurs et KPIs).
 class DashboardSummary {
   final int totalProperties;
   final int activeTenants;
@@ -15,7 +15,7 @@ class DashboardSummary {
   });
 }
 
-/// Alerte ou rappel du tableau de bord.
+/// Alerte ou rappel affiché sur le tableau de bord.
 class DashboardAlert {
   final String id;
   final String title;
@@ -32,6 +32,7 @@ class DashboardAlert {
   });
 }
 
+/// Types d'alertes possibles sur le dashboard.
 enum DashboardAlertType {
   rentDue,
   leaseExpiry,
@@ -40,7 +41,7 @@ enum DashboardAlertType {
   other,
 }
 
-/// Activité récente.
+/// Activité récente affichée sur le tableau de bord.
 class RecentActivity {
   final String id;
   final String title;
@@ -57,6 +58,7 @@ class RecentActivity {
   });
 }
 
+/// Types d'activités récentes.
 enum RecentActivityType {
   rentPayment,
   newTenant,
@@ -67,77 +69,27 @@ enum RecentActivityType {
 }
 
 /// Provider des données résumées du tableau de bord.
+/// Renvoie les vrais compteurs (tout à zéro pour un compte vierge).
+/// TODO: Brancher sur l'API backend quand les endpoints dashboard seront prêts.
 final dashboardSummaryProvider = FutureProvider<DashboardSummary>((ref) async {
-  // TODO: Remplacer par l'appel au repository réel.
   return const DashboardSummary(
-    totalProperties: 5,
-    activeTenants: 8,
-    monthlyRevenue: 4250.00,
-    occupancyRate: 87.5,
+    totalProperties: 0,
+    activeTenants: 0,
+    monthlyRevenue: 0,
+    occupancyRate: 0,
   );
 });
 
 /// Provider des alertes du tableau de bord.
+/// Liste vide tant qu'il n'y a pas de données réelles.
 final dashboardAlertsProvider =
     FutureProvider<List<DashboardAlert>>((ref) async {
-  // TODO: Remplacer par l'appel au repository réel.
-  return [
-    DashboardAlert(
-      id: '1',
-      title: 'Loyer en retard',
-      description: 'M. Martin - Appartement 3B, rue de la Paix',
-      dueDate: DateTime.now().subtract(const Duration(days: 3)),
-      type: DashboardAlertType.rentDue,
-    ),
-    DashboardAlert(
-      id: '2',
-      title: 'Bail arrivant à échéance',
-      description: 'Mme Dubois - Studio 12, avenue des Champs',
-      dueDate: DateTime.now().add(const Duration(days: 28)),
-      type: DashboardAlertType.leaseExpiry,
-    ),
-    DashboardAlert(
-      id: '3',
-      title: 'Intervention plomberie',
-      description: 'Appartement 7A - Fuite signalée',
-      dueDate: DateTime.now().add(const Duration(days: 2)),
-      type: DashboardAlertType.maintenance,
-    ),
-  ];
+  return [];
 });
 
 /// Provider des activités récentes.
+/// Liste vide tant qu'il n'y a pas de données réelles.
 final recentActivitiesProvider =
     FutureProvider<List<RecentActivity>>((ref) async {
-  // TODO: Remplacer par l'appel au repository réel.
-  return [
-    RecentActivity(
-      id: '1',
-      title: 'Paiement de loyer reçu',
-      description: 'M. Lefevre - 850,00 € - Appartement 2A',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      type: RecentActivityType.rentPayment,
-    ),
-    RecentActivity(
-      id: '2',
-      title: 'Nouveau locataire',
-      description: 'Mme Garcia - Studio 5C, rue Molière',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      type: RecentActivityType.newTenant,
-    ),
-    RecentActivity(
-      id: '3',
-      title: 'Document ajouté',
-      description: 'Quittance de loyer - Mars 2026',
-      timestamp: DateTime.now().subtract(const Duration(days: 2)),
-      type: RecentActivityType.documentAdded,
-    ),
-    RecentActivity(
-      id: '4',
-      title: 'Bien ajouté',
-      description: 'Appartement T3 - 15 rue Victor Hugo',
-      timestamp: DateTime.now().subtract(const Duration(days: 3)),
-      type: RecentActivityType.propertyAdded,
-    ),
-  ];
+  return [];
 });
