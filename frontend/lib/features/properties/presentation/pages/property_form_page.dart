@@ -10,10 +10,14 @@ import '../../domain/entities/property_entity.dart';
 import '../providers/property_provider.dart';
 
 /// Formulaire de création/modification d'un bien immobilier.
+/// Si [parentPropertyId] est fourni, crée un appartement dans un immeuble.
 class PropertyFormPage extends ConsumerStatefulWidget {
-  const PropertyFormPage({super.key, this.propertyId});
+  const PropertyFormPage({super.key, this.propertyId, this.parentPropertyId});
 
   final String? propertyId;
+
+  /// ID de l'immeuble parent (pour créer un appartement dans un immeuble).
+  final String? parentPropertyId;
 
   @override
   ConsumerState<PropertyFormPage> createState() => _PropertyFormPageState();
@@ -23,6 +27,7 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
   final _formKey = GlobalKey<FormState>();
 
   bool get _isEditing => widget.propertyId != null;
+  bool get _isChildApartment => widget.parentPropertyId != null;
 
   // Informations générales
   final _nameController = TextEditingController();
@@ -43,22 +48,39 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
 
   // Finances
   final _priceController = TextEditingController();
-  final _rentController = TextEditingController();
   final _taxController = TextEditingController();
   final _insuranceController = TextEditingController();
   final _chargesController = TextEditingController();
 
-  // Immeuble
-  final _apartmentCountController = TextEditingController();
-
   bool _isSaving = false;
+
+  /// Indique si le type sélectionné est un immeuble (pas de surface/loyer propre).
+  bool get _isBuilding => _selectedType == PropertyType.building;
 
   @override
   void initState() {
     super.initState();
+    // Un appartement enfant est forcément de type apartment.
+    if (_isChildApartment) {
+      _selectedType = PropertyType.apartment;
+      // Pré-remplit l'adresse depuis l'immeuble parent.
+      _loadParentAddress();
+    }
     if (_isEditing) {
       _loadPropertyData();
     }
+  }
+
+  /// Pré-remplit les champs de localisation depuis l'immeuble parent.
+  void _loadParentAddress() {
+    final parentAsync = ref.read(propertyDetailProvider(widget.parentPropertyId!));
+    parentAsync.whenData((parent) {
+      _addressController.text = parent.address;
+      _postalCodeController.text = parent.postalCode;
+      _cityController.text = parent.city;
+      _countryController.text = parent.country;
+      if (mounted) setState(() {});
+    });
   }
 
   void _loadPropertyData() {
@@ -76,11 +98,9 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
       _bathroomsController.text = property.bathroomCount?.toString() ?? '';
       _parkingController.text = property.parkingSpaces?.toString() ?? '';
       _priceController.text = property.acquisitionPrice.toStringAsFixed(0);
-      _rentController.text = property.monthlyRent?.toStringAsFixed(0) ?? '';
       _taxController.text = property.propertyTax?.toStringAsFixed(0) ?? '';
       _insuranceController.text = property.insurance?.toStringAsFixed(0) ?? '';
       _chargesController.text = property.charges?.toStringAsFixed(0) ?? '';
-      _apartmentCountController.text = property.apartmentCount?.toString() ?? '';
       if (mounted) setState(() {});
     });
   }
@@ -98,11 +118,9 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
     _bathroomsController.dispose();
     _parkingController.dispose();
     _priceController.dispose();
-    _rentController.dispose();
     _taxController.dispose();
     _insuranceController.dispose();
     _chargesController.dispose();
-    _apartmentCountController.dispose();
     super.dispose();
   }
 
@@ -111,41 +129,58 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Modifier le Bien' : 'Nouveau Bien'),
+        title: Text(
+          _isEditing
+              ? 'Modifier le Bien'
+              : _isChildApartment
+                  ? 'Nouvel Appartement'
+                  : 'Nouveau Bien',
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Section Informations générales
+            // — Section Informations générales —
             _buildSectionCard(
               title: 'Informations générales',
               children: [
                 _buildTextField(
                   controller: _nameController,
-                  label: 'Nom du bien',
-                  hint: 'Ex: Appartement centre-ville',
+                  label: _isChildApartment ? 'Nom de l\'appartement' : 'Nom du bien',
+                  hint: _isChildApartment ? 'Ex: Appartement 1A' : 'Ex: Appartement centre-ville',
                   validator: (v) =>
                       Validators.validateRequired(v, fieldName: 'Le nom'),
                 ),
                 const SizedBox(height: 16),
-                _buildDropdownField(),
-                // Champ nombre d'appartements, visible uniquement pour les immeubles.
-                if (_selectedType == PropertyType.building) ...[
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _apartmentCountController,
-                    label: 'Nombre d\'appartements',
-                    hint: 'Ex: 6',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (v) => _selectedType == PropertyType.building
-                        ? Validators.validateRequired(v, fieldName: 'Le nombre d\'appartements')
-                        : null,
+                // Masque le choix du type pour les appartements enfants.
+                if (!_isChildApartment) _buildDropdownField(),
+                if (!_isChildApartment) const SizedBox(height: 16),
+                // Info contextuelle pour les immeubles.
+                if (_isBuilding && !_isEditing)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.infoLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 18, color: AppColors.info),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Créez d\'abord l\'immeuble, puis ajoutez les appartements depuis sa fiche.',
+                              style: AppTextStyles.caption.copyWith(color: AppColors.info),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
-                const SizedBox(height: 16),
                 _buildTextField(
                   controller: _descriptionController,
                   label: 'Description',
@@ -156,7 +191,7 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
             ),
             const SizedBox(height: 16),
 
-            // Section Localisation
+            // — Section Localisation —
             _buildSectionCard(
               title: 'Localisation',
               children: [
@@ -178,6 +213,10 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
                         hint: '75001',
                         keyboardType: TextInputType.number,
                         validator: Validators.validatePostalCode,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(5),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -203,114 +242,117 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
             ),
             const SizedBox(height: 16),
 
-            // Section Caractéristiques
-            _buildSectionCard(
-              title: 'Caractéristiques',
-              children: [
-                _buildTextField(
-                  controller: _surfaceController,
-                  label: 'Surface (m²)',
-                  hint: 'Ex: 65',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) =>
-                      Validators.validateRequired(v, fieldName: 'La surface'),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _roomsController,
-                        label: 'Chambres',
-                        hint: '0',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            // — Section Caractéristiques —
+            // Masquée pour les immeubles (car défini par appartement).
+            if (!_isBuilding)
+              _buildSectionCard(
+                title: 'Caractéristiques',
+                children: [
+                  _buildTextField(
+                    controller: _surfaceController,
+                    label: 'Surface (m²)',
+                    hint: 'Ex: 65',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    validator: (v) =>
+                        Validators.validateRequired(v, fieldName: 'La surface'),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _roomsController,
+                          label: 'Chambres',
+                          hint: '0',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _bathroomsController,
-                        label: 'Salles de bain',
-                        hint: '0',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _bathroomsController,
+                          label: 'Salles de bain',
+                          hint: '0',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _parkingController,
-                        label: 'Parking',
-                        hint: '0',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _parkingController,
+                          label: 'Parking',
+                          hint: '0',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                    ],
+                  ),
+                ],
+              ),
+            if (!_isBuilding) const SizedBox(height: 16),
 
-            // Section Finances
+            // — Section Finances —
             _buildSectionCard(
               title: 'Finances',
               children: [
-                _buildTextField(
-                  controller: _priceController,
-                  label: 'Prix d\'acquisition (€)',
-                  hint: 'Ex: 250000',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  validator: Validators.validatePrice,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _rentController,
-                  label: 'Loyer mensuel (€)',
-                  hint: 'Ex: 850',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _taxController,
-                        label: 'Taxe foncière (€/an)',
-                        hint: '0',
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                // Prix d'acquisition : global à l'immeuble, masqué pour appart enfant.
+                if (!_isChildApartment) ...[
+                  _buildTextField(
+                    controller: _priceController,
+                    label: 'Prix d\'acquisition (€)',
+                    hint: 'Ex: 250000',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    validator: Validators.validatePrice,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // Note : le loyer mensuel n'est plus saisi ici.
+                // Il est désormais attaché à un événement « Locataire »
+                // depuis la chronologie du bien.
+                // Taxe, assurance, charges : global à l'immeuble, masqué pour appart enfant.
+                if (!_isChildApartment) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _taxController,
+                          label: 'Taxe foncière (€/an)',
+                          hint: '0',
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _insuranceController,
-                        label: 'Assurance (€/an)',
-                        hint: '0',
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _insuranceController,
+                          label: 'Assurance (€/an)',
+                          hint: '0',
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _chargesController,
-                  label: 'Charges mensuelles (€)',
-                  hint: '0',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _chargesController,
+                    label: 'Charges mensuelles (€)',
+                    hint: '0',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 24),
 
-            // Bouton de sauvegarde
+            // — Bouton de sauvegarde —
             SizedBox(
               height: 50,
               child: ElevatedButton(
@@ -332,7 +374,11 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
                         ),
                       )
                     : Text(
-                        _isEditing ? 'Enregistrer les modifications' : 'Créer le bien',
+                        _isEditing
+                            ? 'Enregistrer les modifications'
+                            : _isChildApartment
+                                ? 'Ajouter l\'appartement'
+                                : 'Créer le bien',
                         style: AppTextStyles.button.copyWith(color: AppColors.white),
                       ),
               ),
@@ -465,15 +511,11 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
         roomCount: int.tryParse(_roomsController.text.trim()),
         bathroomCount: int.tryParse(_bathroomsController.text.trim()),
         parkingSpaces: int.tryParse(_parkingController.text.trim()),
-        monthlyRent: double.tryParse(_rentController.text.trim()),
         propertyTax: double.tryParse(_taxController.text.trim()),
         insurance: double.tryParse(_insuranceController.text.trim()),
         charges: double.tryParse(_chargesController.text.trim()),
-        apartmentCount: _selectedType == PropertyType.building
-            ? int.tryParse(_apartmentCountController.text.trim())
-            : null,
+        parentPropertyId: widget.parentPropertyId,
         status: PropertyStatus.owned,
-        isRented: false,
         createdAt: now,
         updatedAt: now,
       );
@@ -486,8 +528,11 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
         await repository.createProperty(property);
       }
 
-      /// Rafraîchit la liste des biens pour afficher le nouveau bien.
+      /// Rafraîchit la liste des biens et le détail du parent si c'est un appartement.
       ref.invalidate(propertiesListProvider);
+      if (widget.parentPropertyId != null) {
+        ref.invalidate(propertyDetailProvider(widget.parentPropertyId!));
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

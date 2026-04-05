@@ -66,6 +66,7 @@ class PropertyCard extends StatelessWidget {
     );
   }
 
+  /// Badge du rendement brut (utilise les valeurs agrégées pour les immeubles).
   Widget _buildYieldBadge() {
     final yield_ = property.grossYield;
     if (yield_ == null) return const SizedBox.shrink();
@@ -179,15 +180,23 @@ class PropertyCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
+                  // Pour les immeubles, affiche le nombre d'apparts.
+                  if (property.isBuilding && property.apartments.isNotEmpty) ...[
+                    _buildInfoChip(
+                      Icons.apartment,
+                      '${property.apartments.length} appt',
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   _buildInfoChip(
                     Icons.square_foot,
-                    '${property.surface.toStringAsFixed(0)} m\u00b2',
+                    '${property.totalSurface.toStringAsFixed(0)} m\u00b2',
                   ),
-                  if (property.monthlyRent != null) ...[
+                  if (property.totalMonthlyRent != null) ...[
                     const SizedBox(width: 8),
                     _buildInfoChip(
                       Icons.payments_outlined,
-                      '${_currencyFormat.format(property.monthlyRent)}/m',
+                      '${_currencyFormat.format(property.totalMonthlyRent)}/m',
                     ),
                   ],
                 ],
@@ -259,15 +268,23 @@ class PropertyCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    // Nombre d'apparts pour les immeubles.
+                    if (property.isBuilding && property.apartments.isNotEmpty) ...[
+                      _buildInfoChip(
+                        Icons.apartment,
+                        '${property.apartments.length} appt',
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     _buildInfoChip(
                       Icons.square_foot,
-                      '${property.surface.toStringAsFixed(0)} m\u00b2',
+                      '${property.totalSurface.toStringAsFixed(0)} m\u00b2',
                     ),
-                    if (property.monthlyRent != null) ...[
+                    if (property.totalMonthlyRent != null) ...[
                       const SizedBox(width: 8),
                       _buildInfoChip(
                         Icons.payments_outlined,
-                        '${_currencyFormat.format(property.monthlyRent)}/m',
+                        '${_currencyFormat.format(property.totalMonthlyRent)}/m',
                       ),
                     ],
                     if (property.grossYield != null) ...[

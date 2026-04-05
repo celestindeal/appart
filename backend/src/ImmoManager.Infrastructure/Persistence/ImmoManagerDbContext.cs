@@ -23,6 +23,7 @@ public class ImmoManagerDbContext : DbContext
     public DbSet<PropertyExpense> PropertyExpenses => Set<PropertyExpense>();
     public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
     public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<PropertyEvent> PropertyEvents => Set<PropertyEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

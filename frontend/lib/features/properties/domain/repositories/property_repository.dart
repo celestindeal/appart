@@ -1,5 +1,6 @@
 import '../entities/profitability_result.dart';
 import '../entities/property_entity.dart';
+import '../entities/property_event_entity.dart';
 
 /// Contrat du repository pour la gestion des biens immobiliers.
 abstract class PropertyRepository {
@@ -45,4 +46,10 @@ abstract class PropertyRepository {
     double notaryFeesPercent = 7.5,
     double surface = 0,
   });
+
+  /// Cree un nouvel evenement (locataire, travaux, autre) attache a un bien.
+  Future<PropertyEventEntity> createPropertyEvent(PropertyEventEntity event);
+
+  /// Supprime un evenement par son identifiant.
+  Future<void> deletePropertyEvent(String eventId);
 }

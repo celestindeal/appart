@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../models/property_event_model.dart';
 import '../models/property_model.dart';
 import 'property_remote_datasource.dart';
 
@@ -80,5 +81,23 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
     return list
         .map((json) => PropertyModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  /// POST /api/PropertyEvents — Crée un événement attaché à un bien.
+  @override
+  Future<PropertyEventModel> createPropertyEvent(
+    PropertyEventModel event,
+  ) async {
+    final response = await _dio.post(
+      ApiEndpoints.propertyEvents,
+      data: event.toJson(),
+    );
+    return PropertyEventModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// DELETE /api/PropertyEvents/{id} — Supprime un événement.
+  @override
+  Future<void> deletePropertyEvent(String eventId) async {
+    await _dio.delete(ApiEndpoints.propertyEventById(eventId));
   }
 }

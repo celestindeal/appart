@@ -1,4 +1,6 @@
 import '../../domain/entities/property_entity.dart';
+import '../../domain/entities/property_event_entity.dart';
+import 'property_event_model.dart';
 
 /// Modèle de données pour un bien immobilier.
 /// Fait le pont entre le JSON du backend (camelCase) et l'entité domaine Dart.
@@ -23,13 +25,13 @@ class PropertyModel extends PropertyEntity {
     super.roomCount,
     super.bathroomCount,
     super.parkingSpaces,
-    super.monthlyRent,
     super.propertyTax,
     super.insurance,
     super.charges,
     super.monthlyExpenses,
-    super.isRented,
-    super.apartmentCount,
+    super.parentPropertyId,
+    super.apartments,
+    super.events,
   });
 
   /// Parse un bien depuis le JSON du backend (camelCase .NET).
@@ -57,18 +59,24 @@ class PropertyModel extends PropertyEntity {
       roomCount: json['roomCount'] as int?,
       bathroomCount: json['bathroomCount'] as int?,
       parkingSpaces: json['parkingSpaces'] as int?,
-      monthlyRent: (json['monthlyRent'] as num?)?.toDouble(),
       propertyTax: (json['propertyTax'] as num?)?.toDouble(),
       insurance: (json['insurance'] as num?)?.toDouble(),
       charges: (json['monthlyCharges'] as num?)?.toDouble(),
       monthlyExpenses: (json['monthlyExpenses'] as num?)?.toDouble(),
-      isRented: json['isRented'] as bool? ?? false,
       status: PropertyStatus.values.firstWhere(
         (e) => e.name.toLowerCase() == (json['status'] as String?)?.toLowerCase()
             || e.name == json['status'].toString(),
         orElse: () => PropertyStatus.prospect,
       ),
-      apartmentCount: json['apartmentCount'] as int?,
+      parentPropertyId: json['parentPropertyId'] as String?,
+      apartments: (json['apartments'] as List<dynamic>?)
+              ?.map((a) => PropertyModel.fromJson(a as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      events: (json['events'] as List<dynamic>?)
+              ?.map((e) => PropertyEventModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -93,20 +101,25 @@ class PropertyModel extends PropertyEntity {
       roomCount: entity.roomCount,
       bathroomCount: entity.bathroomCount,
       parkingSpaces: entity.parkingSpaces,
-      monthlyRent: entity.monthlyRent,
       propertyTax: entity.propertyTax,
       insurance: entity.insurance,
       charges: entity.charges,
       monthlyExpenses: entity.monthlyExpenses,
-      isRented: entity.isRented,
       status: entity.status,
-      apartmentCount: entity.apartmentCount,
+      parentPropertyId: entity.parentPropertyId,
+      apartments: entity.apartments
+          .map((a) => PropertyModel.fromEntity(a))
+          .toList(),
+      events: entity.events
+          .map<PropertyEventEntity>((e) => PropertyEventModel.fromEntity(e))
+          .toList(),
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
   }
 
   /// Sérialise le bien en JSON pour envoi au backend.
+  /// Les événements ne sont pas envoyés ici (endpoint dédié).
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -123,13 +136,11 @@ class PropertyModel extends PropertyEntity {
       'roomCount': roomCount,
       'bathroomCount': bathroomCount,
       'parkingSpaces': parkingSpaces,
-      'monthlyRent': monthlyRent,
       'propertyTax': propertyTax,
       'insurance': insurance,
       'monthlyCharges': charges,
-      'isRented': isRented,
       'status': status.name,
-      'apartmentCount': apartmentCount,
+      'parentPropertyId': parentPropertyId,
     };
   }
 }

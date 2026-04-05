@@ -58,9 +58,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final isLoading = authState is AuthLoading;
 
     ref.listen<AuthState>(authStateProvider, (previous, next) {
-      if (next is AuthAuthenticated) {
-        context.goNamed(RouteNames.dashboard);
-      } else if (next is AuthError) {
+      if (next is AuthError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.message),

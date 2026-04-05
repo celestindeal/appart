@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/property_entity.dart';
+import '../../domain/entities/property_event_entity.dart';
 import '../../domain/repositories/property_repository.dart';
 
 /// Etat de la recherche de biens.
@@ -157,3 +158,37 @@ final propertyDetailProvider =
   final repository = ref.watch(propertyRepositoryProvider);
   return repository.getPropertyById(id);
 });
+
+/// Provider exposant des actions pour les evenements d'un bien.
+/// Invalide automatiquement la liste et le detail apres une mutation.
+final propertyEventActionsProvider =
+    Provider<PropertyEventActions>((ref) {
+  return PropertyEventActions(ref);
+});
+
+/// Encapsule les actions de mutation des evenements de bien.
+class PropertyEventActions {
+  PropertyEventActions(this._ref);
+
+  final Ref _ref;
+
+  /// Cree un evenement et rafraichit la liste/detail concerne.
+  Future<PropertyEventEntity> create(PropertyEventEntity event) async {
+    final repository = _ref.read(propertyRepositoryProvider);
+    final created = await repository.createPropertyEvent(event);
+    _ref.invalidate(propertyDetailProvider(event.propertyId));
+    _ref.invalidate(propertiesListProvider);
+    return created;
+  }
+
+  /// Supprime un evenement et rafraichit la liste/detail concerne.
+  Future<void> delete({
+    required String eventId,
+    required String propertyId,
+  }) async {
+    final repository = _ref.read(propertyRepositoryProvider);
+    await repository.deletePropertyEvent(eventId);
+    _ref.invalidate(propertyDetailProvider(propertyId));
+    _ref.invalidate(propertiesListProvider);
+  }
+}

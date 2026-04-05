@@ -1,3 +1,4 @@
+import '../models/property_event_model.dart';
 import '../models/property_model.dart';
 
 /// Contrat de la source de donnees distante pour les biens immobiliers.
@@ -29,4 +30,10 @@ abstract class PropertyRemoteDatasource {
     String? city,
     bool? isRented,
   });
+
+  /// Cree un nouvel evenement attache a un bien.
+  Future<PropertyEventModel> createPropertyEvent(PropertyEventModel event);
+
+  /// Supprime un evenement par son identifiant.
+  Future<void> deletePropertyEvent(String eventId);
 }

@@ -6,6 +6,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/widgets/stat_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../properties/presentation/providers/property_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/alerts_widget.dart';
 import '../widgets/recent_activity_widget.dart';
@@ -29,6 +30,8 @@ class DashboardPage extends ConsumerWidget {
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async {
+          // Rafraîchit d'abord les biens, puis les KPIs qui en dépendent.
+          ref.invalidate(propertiesListProvider);
           ref.invalidate(dashboardSummaryProvider);
           ref.invalidate(dashboardAlertsProvider);
           ref.invalidate(recentActivitiesProvider);
@@ -78,27 +81,27 @@ class DashboardPage extends ConsumerWidget {
                       childAspectRatio: childAspectRatio,
                       children: [
                         StatCard(
-                          label: 'Total biens',
+                          label: 'Biens',
                           value: '${summary.totalProperties}',
                           icon: Icons.home_work_outlined,
                           iconColor: AppColors.primary,
                         ),
                         StatCard(
-                          label: 'Locataires actifs',
-                          value: '${summary.activeTenants}',
-                          icon: Icons.people_outlined,
+                          label: 'Appartements',
+                          value: '${summary.totalApartments}',
+                          icon: Icons.apartment,
                           iconColor: AppColors.secondary,
                         ),
                         StatCard(
-                          label: 'Revenus mensuels',
+                          label: 'Revenus /mois',
                           value: currencyFormat.format(summary.monthlyRevenue),
                           icon: Icons.account_balance_wallet_outlined,
                           iconColor: AppColors.success,
                         ),
                         StatCard(
-                          label: "Taux d'occupation",
-                          value: '${summary.occupancyRate.toStringAsFixed(1)}%',
-                          icon: Icons.pie_chart_outline,
+                          label: 'Rendement brut',
+                          value: '${summary.grossYield.toStringAsFixed(1)}%',
+                          icon: Icons.trending_up,
                           iconColor: AppColors.accent,
                         ),
                       ],

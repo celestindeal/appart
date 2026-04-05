@@ -1,8 +1,10 @@
 import '../../domain/entities/profitability_result.dart';
 import '../../domain/entities/property_entity.dart';
+import '../../domain/entities/property_event_entity.dart';
 import '../../domain/repositories/property_repository.dart';
 import '../../domain/usecases/calculate_profitability_usecase.dart';
 import '../datasources/property_remote_datasource.dart';
+import '../models/property_event_model.dart';
 import '../models/property_model.dart';
 
 /// Implementation concrete du repository des biens immobiliers.
@@ -98,5 +100,18 @@ class PropertyRepositoryImpl implements PropertyRepository {
       notaryFeesPercent: notaryFeesPercent,
       surface: surface,
     );
+  }
+
+  @override
+  Future<PropertyEventEntity> createPropertyEvent(
+    PropertyEventEntity event,
+  ) async {
+    final model = PropertyEventModel.fromEntity(event);
+    return _remoteDatasource.createPropertyEvent(model);
+  }
+
+  @override
+  Future<void> deletePropertyEvent(String eventId) async {
+    await _remoteDatasource.deletePropertyEvent(eventId);
   }
 }

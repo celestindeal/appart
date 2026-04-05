@@ -21,15 +21,21 @@ public class PropertyDto
     public int? RoomCount { get; set; }
     public int? BathroomCount { get; set; }
     public int? ParkingSpaces { get; set; }
-    public decimal? MonthlyRent { get; set; }
     public decimal? PropertyTax { get; set; }
     public decimal? Insurance { get; set; }
     public decimal? MonthlyCharges { get; set; }
     public bool IsRented { get; set; }
     public PropertyStatus Status { get; set; }
 
-    /// Nombre d'appartements (uniquement pour les immeubles).
-    public int? ApartmentCount { get; set; }
+    /// ID du bien parent (immeuble) si cet appartement en fait partie.
+    public Guid? ParentPropertyId { get; set; }
+
+    /// Liste des appartements contenus dans cet immeuble.
+    /// Rempli uniquement pour les biens de type Building.
+    public List<PropertyDto>? Apartments { get; set; }
+
+    /// Liste des événements associés à ce bien (locataires, travaux, etc.).
+    public List<PropertyEventDto>? Events { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

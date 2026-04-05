@@ -175,9 +175,6 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ApartmentCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int?>("BathroomCount")
                         .HasColumnType("INTEGER");
 
@@ -215,12 +212,12 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("MonthlyCharges")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal?>("MonthlyRent")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ParentPropertyId")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("ParkingSpaces")
@@ -255,6 +252,8 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("City");
+
+                    b.HasIndex("ParentPropertyId");
 
                     b.HasIndex("UserId");
 
@@ -296,6 +295,58 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                     b.HasIndex("PropertyId");
 
                     b.ToTable("PropertyDocuments");
+                });
+
+            modelBuilder.Entity("ImmoManager.Domain.Entities.PropertyEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("DepositAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("MonthlyRent")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PropertyEvents", (string)null);
                 });
 
             modelBuilder.Entity("ImmoManager.Domain.Entities.PropertyExpense", b =>
@@ -875,11 +926,18 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ImmoManager.Domain.Entities.Property", b =>
                 {
+                    b.HasOne("ImmoManager.Domain.Entities.Property", "ParentProperty")
+                        .WithMany("Apartments")
+                        .HasForeignKey("ParentPropertyId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("ImmoManager.Domain.Entities.User", "User")
                         .WithMany("Properties")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ParentProperty");
 
                     b.Navigation("User");
                 });
@@ -893,6 +951,25 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Property");
+                });
+
+            modelBuilder.Entity("ImmoManager.Domain.Entities.PropertyEvent", b =>
+                {
+                    b.HasOne("ImmoManager.Domain.Entities.Property", "Property")
+                        .WithMany("Events")
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ImmoManager.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ImmoManager.Domain.Entities.PropertyExpense", b =>
@@ -1015,6 +1092,10 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ImmoManager.Domain.Entities.Property", b =>
                 {
+                    b.Navigation("Apartments");
+
+                    b.Navigation("Events");
+
                     b.Navigation("PropertyDocuments");
 
                     b.Navigation("PropertyExpenses");

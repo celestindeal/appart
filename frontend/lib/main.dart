@@ -9,6 +9,7 @@ import 'config/routes/app_routes.dart';
 import 'config/theme/app_theme.dart';
 import 'core/network/interceptors/auth_interceptor.dart';
 import 'core/network/interceptors/logging_interceptor.dart';
+import 'core/storage/token_cache.dart';
 import 'features/auth/data/datasources/auth_remote_datasource_impl.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
@@ -17,77 +18,88 @@ import 'features/properties/data/repositories/property_repository_impl.dart';
 import 'features/properties/presentation/providers/property_provider.dart';
 
 /// Point d'entrée de l'application.
-/// Initialise les dépendances (Dio, stockage sécurisé, repositories)
-/// puis lance l'app Flutter avec Riverpod.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialisation du formatage des dates en français.
   await initializeDateFormatting('fr_FR', null);
 
-  // Stockage sécurisé pour les tokens JWT.
   const secureStorage = FlutterSecureStorage();
 
-  // Client HTTP Dio configuré avec l'URL de base de l'API.
+  // Cache mémoire des tokens — contourne le bug OperationError de
+  // flutter_secure_storage sur web en évitant les lectures répétées.
+  final tokenCache = TokenCache(secureStorage: secureStorage);
+  await tokenCache.loadFromStorage();
+
   final dio = Dio(
     BaseOptions(
       baseUrl: AppConstants.apiBaseUrl,
       connectTimeout: AppConstants.apiTimeout,
       receiveTimeout: AppConstants.apiTimeout,
-      sendTimeout: AppConstants.apiTimeout,
       contentType: Headers.jsonContentType,
       responseType: ResponseType.json,
     ),
   );
 
-  // Ajout des intercepteurs : auth (JWT + refresh auto) et logging.
-  dio.interceptors.addAll([
-    AuthInterceptor(secureStorage: secureStorage, dio: dio),
-    LoggingInterceptor(),
-  ]);
-
-  // Source de données distante pour l'authentification.
   final authRemoteDataSource = AuthRemoteDataSourceImpl(dio: dio);
-
-  // Repository d'auth qui gère tokens + appels API.
   final authRepository = AuthRepositoryImpl(
     remoteDataSource: authRemoteDataSource,
-    secureStorage: secureStorage,
+    tokenCache: tokenCache,
   );
 
-  // Source de données distante pour les biens immobiliers.
   final propertyRemoteDatasource = PropertyRemoteDatasourceImpl(dio: dio);
-
-  // Repository des biens qui gère les appels API + calculs de rentabilité.
   final propertyRepository = PropertyRepositoryImpl(
     remoteDatasource: propertyRemoteDatasource,
   );
 
+  // Container unique partagé entre l'intercepteur et l'arbre widget.
+  final container = ProviderContainer(
+    overrides: [
+      authRepositoryProvider.overrideWithValue(authRepository),
+      propertyRepositoryProvider.overrideWithValue(propertyRepository),
+    ],
+  );
+
+  // L'intercepteur utilise un Dio dédié pour le refresh (pas de récursion).
+  // onAuthExpired force le logout quand le refresh token est invalide.
+  dio.interceptors.addAll([
+    AuthInterceptor(
+      tokenCache: tokenCache,
+      dio: dio,
+      onAuthExpired: () {
+        container.read(authStateProvider.notifier).logout();
+      },
+    ),
+    LoggingInterceptor(),
+  ]);
+
   runApp(
-    ProviderScope(
-      overrides: [
-        authRepositoryProvider.overrideWithValue(authRepository),
-        propertyRepositoryProvider.overrideWithValue(propertyRepository),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const ImmoManagerApp(),
     ),
   );
 }
 
 /// Widget racine de l'application.
-/// Configure le thème Material 3, le routeur GoRouter et la locale française.
-/// Déclenche la vérification de l'état d'authentification au premier build.
-class ImmoManagerApp extends ConsumerWidget {
+class ImmoManagerApp extends ConsumerStatefulWidget {
   const ImmoManagerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Récupère le routeur qui réagit à l'état d'auth.
-    final router = ref.watch(appRouterProvider);
+  ConsumerState<ImmoManagerApp> createState() => _ImmoManagerAppState();
+}
 
-    // Vérifie si l'utilisateur a un token valide au démarrage.
-    ref.listen(authStateProvider, (previous, next) {});
-    _checkAuth(ref);
+class _ImmoManagerAppState extends ConsumerState<ImmoManagerApp> {
+  bool _authChecked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.read(appRouterProvider);
+
+    if (!_authChecked) {
+      _authChecked = true;
+      Future.microtask(
+        () => ref.read(authStateProvider.notifier).checkAuthStatus(),
+      );
+    }
 
     return MaterialApp.router(
       title: AppConstants.appName,
@@ -98,17 +110,5 @@ class ImmoManagerApp extends ConsumerWidget {
       routerConfig: router,
       locale: const Locale('fr', 'FR'),
     );
-  }
-
-  /// Lance la vérification d'auth une seule fois au démarrage.
-  /// En mode dev, on ne vérifie pas (pas besoin de se connecter).
-  void _checkAuth(WidgetRef ref) {
-    if (AppConstants.devMode) return;
-    final authState = ref.read(authStateProvider);
-    if (authState is AuthInitial) {
-      Future.microtask(
-        () => ref.read(authStateProvider.notifier).checkAuthStatus(),
-      );
-    }
   }
 }

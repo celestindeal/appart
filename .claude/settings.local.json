@@ -42,7 +42,11 @@
       "Bash(taskkill //F //PID 3144)",
       "Bash(xargs grep:*)",
       "Bash(taskkill //F //PID 540)",
-      "Bash(export PATH=\"$HOME/.dotnet/tools:$PATH\")"
+      "Bash(export PATH=\"$HOME/.dotnet/tools:$PATH\")",
+      "Bash(tasklist)",
+      "Bash(tasklist //FI \"IMAGENAME eq ImmoManager.Api.exe\")",
+      "Bash(taskkill //F //PID 5176)",
+      "Bash(taskkill //F //IM ImmoManager.Api.exe)"
     ]
   }
 }

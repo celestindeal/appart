@@ -10,6 +10,8 @@ namespace ImmoManager.Infrastructure.Services;
 /// Service de gestion des biens immobiliers.
 /// Gère le CRUD des biens en s'assurant que chaque utilisateur
 /// ne peut accéder qu'à ses propres biens.
+/// Les biens "racine" (sans parent) sont affichés dans la liste principale.
+/// Les appartements d'un immeuble sont chargés via la relation parent-enfant.
 public class PropertyService : IPropertyService
 {
     private readonly ImmoManagerDbContext _context;
@@ -19,12 +21,16 @@ public class PropertyService : IPropertyService
         _context = context;
     }
 
-    /// Récupère tous les biens de l'utilisateur, avec filtres optionnels
-    /// sur le texte de recherche, le type, le statut et la ville.
+    /// Récupère tous les biens racine de l'utilisateur (exclut les appartements enfants).
+    /// Inclut la liste des appartements pour les immeubles.
     public async Task<List<PropertyDto>> GetAllAsync(
         Guid userId, string? search, PropertyType? type, PropertyStatus? status, string? city)
     {
-        var query = _context.Properties.Where(p => p.UserId == userId);
+        var query = _context.Properties
+            .Include(p => p.Apartments)
+                .ThenInclude(a => a.Events)
+            .Include(p => p.Events)
+            .Where(p => p.UserId == userId && p.ParentPropertyId == null);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -48,18 +54,36 @@ public class PropertyService : IPropertyService
         return properties.Select(MapToDto).ToList();
     }
 
-    /// Récupère un bien par son ID. Renvoie null s'il n'appartient pas à l'utilisateur.
+    /// Récupère un bien par son ID, avec ses appartements s'il s'agit d'un immeuble.
+    /// Renvoie null s'il n'appartient pas à l'utilisateur.
     public async Task<PropertyDto?> GetByIdAsync(Guid id, Guid userId)
     {
         var property = await _context.Properties
+            .Include(p => p.Apartments)
+                .ThenInclude(a => a.Events)
+            .Include(p => p.Events)
             .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
 
         return property == null ? null : MapToDto(property);
     }
 
     /// Crée un nouveau bien en base pour l'utilisateur donné.
+    /// Si ParentPropertyId est spécifié, vérifie que le parent existe,
+    /// appartient à l'utilisateur et est de type Building.
     public async Task<PropertyDto> CreateAsync(CreatePropertyRequest request, Guid userId)
     {
+        if (request.ParentPropertyId.HasValue)
+        {
+            var parent = await _context.Properties
+                .FirstOrDefaultAsync(p => p.Id == request.ParentPropertyId.Value && p.UserId == userId);
+
+            if (parent == null)
+                throw new ArgumentException("L'immeuble parent n'existe pas.");
+
+            if (parent.PropertyType != PropertyType.Building)
+                throw new ArgumentException("Le bien parent doit être un immeuble.");
+        }
+
         var property = new Property
         {
             UserId = userId,
@@ -77,13 +101,12 @@ public class PropertyService : IPropertyService
             RoomCount = request.RoomCount,
             BathroomCount = request.BathroomCount,
             ParkingSpaces = request.ParkingSpaces,
-            MonthlyRent = request.MonthlyRent,
             PropertyTax = request.PropertyTax,
             Insurance = request.Insurance,
             MonthlyCharges = request.MonthlyCharges,
             IsRented = request.IsRented,
             Status = request.Status,
-            ApartmentCount = request.PropertyType == PropertyType.Building ? request.ApartmentCount : null,
+            ParentPropertyId = request.ParentPropertyId,
         };
 
         _context.Properties.Add(property);
@@ -96,6 +119,9 @@ public class PropertyService : IPropertyService
     public async Task<PropertyDto?> UpdateAsync(Guid id, UpdatePropertyRequest request, Guid userId)
     {
         var property = await _context.Properties
+            .Include(p => p.Apartments)
+                .ThenInclude(a => a.Events)
+            .Include(p => p.Events)
             .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
 
         if (property == null) return null;
@@ -114,20 +140,20 @@ public class PropertyService : IPropertyService
         property.RoomCount = request.RoomCount;
         property.BathroomCount = request.BathroomCount;
         property.ParkingSpaces = request.ParkingSpaces;
-        property.MonthlyRent = request.MonthlyRent;
         property.PropertyTax = request.PropertyTax;
         property.Insurance = request.Insurance;
         property.MonthlyCharges = request.MonthlyCharges;
         property.IsRented = request.IsRented;
         property.Status = request.Status;
-        property.ApartmentCount = request.PropertyType == PropertyType.Building ? request.ApartmentCount : null;
+        property.ParentPropertyId = request.ParentPropertyId;
 
         await _context.SaveChangesAsync();
 
         return MapToDto(property);
     }
 
-    /// Supprime un bien. Renvoie false s'il n'appartient pas à l'utilisateur.
+    /// Supprime un bien (et ses appartements enfants en cascade).
+    /// Renvoie false s'il n'appartient pas à l'utilisateur.
     public async Task<bool> DeleteAsync(Guid id, Guid userId)
     {
         var property = await _context.Properties
@@ -141,7 +167,7 @@ public class PropertyService : IPropertyService
         return true;
     }
 
-    /// Convertit une entité Property en DTO pour la réponse API.
+    /// Convertit une entité Property en DTO, avec ses appartements enfants.
     private static PropertyDto MapToDto(Property p) => new()
     {
         Id = p.Id,
@@ -160,13 +186,27 @@ public class PropertyService : IPropertyService
         RoomCount = p.RoomCount,
         BathroomCount = p.BathroomCount,
         ParkingSpaces = p.ParkingSpaces,
-        MonthlyRent = p.MonthlyRent,
         PropertyTax = p.PropertyTax,
         Insurance = p.Insurance,
         MonthlyCharges = p.MonthlyCharges,
         IsRented = p.IsRented,
         Status = p.Status,
-        ApartmentCount = p.ApartmentCount,
+        ParentPropertyId = p.ParentPropertyId,
+        Apartments = p.Apartments?.Select(MapToDto).ToList(),
+        Events = p.Events?.Select(e => new PropertyEventDto
+        {
+            Id = e.Id,
+            PropertyId = e.PropertyId,
+            EventType = e.EventType,
+            Title = e.Title,
+            Description = e.Description,
+            StartDate = e.StartDate,
+            EndDate = e.EndDate,
+            MonthlyRent = e.MonthlyRent,
+            DepositAmount = e.DepositAmount,
+            Cost = e.Cost,
+            CreatedAt = e.CreatedAt,
+        }).ToList(),
         CreatedAt = p.CreatedAt,
         UpdatedAt = p.UpdatedAt,
     };

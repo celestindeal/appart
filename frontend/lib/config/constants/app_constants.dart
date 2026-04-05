@@ -1,11 +1,5 @@
 /// Constantes globales de l'application.
 abstract final class AppConstants {
-  // ── Dev Mode ─────────────────────────────────────────────
-  /// Passer à true pour bypasser l'authentification pendant le développement.
-  /// L'app démarre directement sur le dashboard sans passer par le login.
-  /// Mettre à false avant de livrer en production.
-  static const bool devMode = true;
-
   // ── API ──────────────────────────────────────────────────
   static const String apiBaseUrl = 'http://localhost:5000/api';
   static const Duration apiTimeout = Duration(seconds: 30);

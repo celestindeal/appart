@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'property_event_entity.dart';
+
 /// Types de biens immobiliers.
 enum PropertyType {
   apartment('Appartement'),
@@ -46,13 +48,13 @@ class PropertyEntity extends Equatable {
     this.roomCount,
     this.bathroomCount,
     this.parkingSpaces,
-    this.monthlyRent,
     this.propertyTax,
     this.insurance,
     this.charges,
     this.monthlyExpenses,
-    this.isRented = false,
-    this.apartmentCount,
+    this.parentPropertyId,
+    this.apartments = const [],
+    this.events = const [],
   });
 
   final String id;
@@ -71,28 +73,88 @@ class PropertyEntity extends Equatable {
   final int? roomCount;
   final int? bathroomCount;
   final int? parkingSpaces;
-  final double? monthlyRent;
   final double? propertyTax;
   final double? insurance;
   final double? charges;
   final double? monthlyExpenses;
-  final bool isRented;
   final PropertyStatus status;
 
-  /// Nombre d'appartements (uniquement pour les immeubles).
-  final int? apartmentCount;
+  /// ID du bien parent (immeuble) si cet appartement en fait partie.
+  final String? parentPropertyId;
+
+  /// Liste des appartements contenus dans cet immeuble.
+  final List<PropertyEntity> apartments;
+
+  /// Liste des événements (locataires, travaux, autres) attachés au bien.
+  final List<PropertyEventEntity> events;
 
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  /// Rendement brut estimatif rapide.
-  double? get grossYield {
-    if (monthlyRent == null || acquisitionPrice <= 0) return null;
-    return (monthlyRent! * 12) / acquisitionPrice * 100;
+  /// Vrai si ce bien est un immeuble contenant des appartements.
+  bool get isBuilding => propertyType == PropertyType.building;
+
+  /// Vrai si ce bien est un appartement enfant d'un immeuble.
+  bool get isChildApartment => parentPropertyId != null;
+
+  /// Premier événement locataire actif (le plus pertinent pour le loyer en cours).
+  PropertyEventEntity? get activeTenantEvent => events
+      .where(
+        (e) => e.eventType == PropertyEventType.tenant && e.isActive,
+      )
+      .fold<PropertyEventEntity?>(null, (prev, e) => prev ?? e);
+
+  /// Loyer mensuel du locataire actif (compatibilité API avec l'ancien champ).
+  double? get monthlyRent => activeTenantEvent?.monthlyRent;
+
+  /// Vrai si un locataire actif est attaché au bien (calculé depuis les événements).
+  bool get isRented => activeTenantEvent != null;
+
+  /// Surface totale : somme des surfaces des appartements pour un immeuble,
+  /// ou la surface propre pour un bien simple.
+  double get totalSurface => isBuilding && apartments.isNotEmpty
+      ? apartments.fold(0.0, (sum, a) => sum + a.surface)
+      : surface;
+
+  /// Loyer mensuel total : somme des loyers des appartements pour un immeuble,
+  /// ou le loyer propre pour un bien simple.
+  double? get totalMonthlyRent {
+    if (isBuilding && apartments.isNotEmpty) {
+      final total = apartments.fold(
+        0.0,
+        (sum, a) => sum + (a.activeTenantEvent?.monthlyRent ?? 0),
+      );
+      return total > 0 ? total : null;
+    }
+    return monthlyRent;
   }
 
-  /// Prix au mètre carré.
-  double get pricePerSqm => surface > 0 ? acquisitionPrice / surface : 0;
+  /// Nombre total de pièces agrégé depuis les appartements.
+  int? get totalRoomCount {
+    if (isBuilding && apartments.isNotEmpty) {
+      final total = apartments.fold(0, (sum, a) => sum + (a.roomCount ?? 0));
+      return total > 0 ? total : null;
+    }
+    return roomCount;
+  }
+
+  /// Nombre d'appartements occupés (loués) dans l'immeuble.
+  int get rentedApartmentCount =>
+      apartments.where((a) => a.isRented).length;
+
+  /// Rendement brut estimatif rapide.
+  /// Pour un immeuble, utilise le loyer total agrégé.
+  double? get grossYield {
+    final rent = totalMonthlyRent;
+    if (rent == null || acquisitionPrice <= 0) return null;
+    return (rent * 12) / acquisitionPrice * 100;
+  }
+
+  /// Prix au mètre carré (utilise la surface totale pour les immeubles).
+  double get pricePerSqm {
+    final s = totalSurface;
+    return s > 0 ? acquisitionPrice / s : 0;
+  }
 
   /// Copie l'entité en remplaçant les champs spécifiés.
   PropertyEntity copyWith({
@@ -112,14 +174,14 @@ class PropertyEntity extends Equatable {
     int? roomCount,
     int? bathroomCount,
     int? parkingSpaces,
-    double? monthlyRent,
     double? propertyTax,
     double? insurance,
     double? charges,
     double? monthlyExpenses,
-    bool? isRented,
     PropertyStatus? status,
-    int? apartmentCount,
+    String? parentPropertyId,
+    List<PropertyEntity>? apartments,
+    List<PropertyEventEntity>? events,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -140,14 +202,14 @@ class PropertyEntity extends Equatable {
       roomCount: roomCount ?? this.roomCount,
       bathroomCount: bathroomCount ?? this.bathroomCount,
       parkingSpaces: parkingSpaces ?? this.parkingSpaces,
-      monthlyRent: monthlyRent ?? this.monthlyRent,
       propertyTax: propertyTax ?? this.propertyTax,
       insurance: insurance ?? this.insurance,
       charges: charges ?? this.charges,
       monthlyExpenses: monthlyExpenses ?? this.monthlyExpenses,
-      isRented: isRented ?? this.isRented,
       status: status ?? this.status,
-      apartmentCount: apartmentCount ?? this.apartmentCount,
+      parentPropertyId: parentPropertyId ?? this.parentPropertyId,
+      apartments: apartments ?? this.apartments,
+      events: events ?? this.events,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -155,10 +217,31 @@ class PropertyEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, userId, name, description, address, postalCode, city, country,
-        propertyType, acquisitionDate, acquisitionPrice, currentValue, surface,
-        roomCount, bathroomCount, parkingSpaces, monthlyRent, propertyTax,
-        insurance, charges, monthlyExpenses, isRented, status, apartmentCount,
-        createdAt, updatedAt,
+        id,
+        userId,
+        name,
+        description,
+        address,
+        postalCode,
+        city,
+        country,
+        propertyType,
+        acquisitionDate,
+        acquisitionPrice,
+        currentValue,
+        surface,
+        roomCount,
+        bathroomCount,
+        parkingSpaces,
+        propertyTax,
+        insurance,
+        charges,
+        monthlyExpenses,
+        status,
+        parentPropertyId,
+        apartments,
+        events,
+        createdAt,
+        updatedAt,
       ];
 }

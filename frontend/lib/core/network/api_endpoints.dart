@@ -14,6 +14,10 @@ abstract final class ApiEndpoints {
   static String propertyProfitability(String id) =>
       '/properties/$id/profitability';
 
+  // ── Property Events (Chronologie) ─────────────────────────
+  static const String propertyEvents = '/PropertyEvents';
+  static String propertyEventById(String id) => '/PropertyEvents/$id';
+
   // ── Purchase (Achats) ─────────────────────────────────────
   static const String purchases = '/purchases';
   static String purchaseById(String id) => '/purchases/$id';

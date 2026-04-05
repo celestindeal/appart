@@ -1,22 +1,21 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-import '../../../../config/constants/app_constants.dart';
+import '../../../../core/storage/token_cache.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 
 /// Implémentation concrète du repository d'authentification.
-/// Gère la persistance des tokens via [FlutterSecureStorage]
-/// et délègue les appels réseau au [AuthRemoteDataSource].
+/// Gère la persistance des tokens via [TokenCache] (mémoire + stockage
+/// sécurisé tolérant aux erreurs) et délègue les appels réseau au
+/// [AuthRemoteDataSource].
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthRemoteDataSource _remoteDataSource;
-  final FlutterSecureStorage _secureStorage;
-
   AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
-    required FlutterSecureStorage secureStorage,
+    required TokenCache tokenCache,
   })  : _remoteDataSource = remoteDataSource,
-        _secureStorage = secureStorage;
+        _tokenCache = tokenCache;
+
+  final AuthRemoteDataSource _remoteDataSource;
+  final TokenCache _tokenCache;
 
   /// Appelle le login API, sauvegarde les tokens en local et renvoie l'utilisateur.
   @override
@@ -25,7 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-    await _persistTokens(
+    await _tokenCache.setTokens(
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
     );
@@ -48,7 +47,7 @@ class AuthRepositoryImpl implements AuthRepository {
       password: password,
       phoneNumber: phoneNumber,
     );
-    await _persistTokens(
+    await _tokenCache.setTokens(
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
     );
@@ -59,9 +58,7 @@ class AuthRepositoryImpl implements AuthRepository {
   /// Si l'appel serveur échoue, on nettoie quand même en local.
   @override
   Future<void> logout() async {
-    final refreshToken = await _secureStorage.read(
-      key: AppConstants.refreshTokenKey,
-    );
+    final refreshToken = _tokenCache.refreshToken;
     if (refreshToken != null) {
       try {
         await _remoteDataSource.logout(refreshToken);
@@ -69,17 +66,14 @@ class AuthRepositoryImpl implements AuthRepository {
         // On supprime les tokens localement même si l'appel serveur échoue.
       }
     }
-    await _clearTokens();
+    await _tokenCache.clear();
   }
 
   /// Vérifie si l'utilisateur a un token valide et récupère son profil.
   /// Renvoie null si aucun token ou si le token est expiré.
   @override
   Future<UserEntity?> getCurrentUser() async {
-    final accessToken = await _secureStorage.read(
-      key: AppConstants.accessTokenKey,
-    );
-    if (accessToken == null) return null;
+    if (!_tokenCache.hasAccessToken) return null;
 
     try {
       final userModel = await _remoteDataSource.getCurrentUser();
@@ -93,35 +87,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<String> refreshToken(String refreshToken) async {
     final response = await _remoteDataSource.refreshToken(refreshToken);
-    await _persistTokens(
+    await _tokenCache.setTokens(
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
     );
     return response.accessToken;
-  }
-
-  /// Sauvegarde les tokens JWT et refresh dans le stockage sécurisé.
-  Future<void> _persistTokens({
-    required String accessToken,
-    required String refreshToken,
-  }) async {
-    await Future.wait([
-      _secureStorage.write(
-        key: AppConstants.accessTokenKey,
-        value: accessToken,
-      ),
-      _secureStorage.write(
-        key: AppConstants.refreshTokenKey,
-        value: refreshToken,
-      ),
-    ]);
-  }
-
-  /// Supprime les tokens du stockage sécurisé (déconnexion locale).
-  Future<void> _clearTokens() async {
-    await Future.wait([
-      _secureStorage.delete(key: AppConstants.accessTokenKey),
-      _secureStorage.delete(key: AppConstants.refreshTokenKey),
-    ]);
   }
 }

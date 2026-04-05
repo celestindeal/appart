@@ -41,13 +41,13 @@ public class CreatePropertyRequest
     public int? RoomCount { get; set; }
     public int? BathroomCount { get; set; }
     public int? ParkingSpaces { get; set; }
-    public decimal? MonthlyRent { get; set; }
     public decimal? PropertyTax { get; set; }
     public decimal? Insurance { get; set; }
     public decimal? MonthlyCharges { get; set; }
     public bool IsRented { get; set; }
     public PropertyStatus Status { get; set; }
 
-    /// Nombre d'appartements (obligatoire si PropertyType == Building).
-    public int? ApartmentCount { get; set; }
+    /// ID du bien parent (immeuble) auquel rattacher cet appartement.
+    /// Null pour un bien racine (immeuble standalone, appartement solo, etc.).
+    public Guid? ParentPropertyId { get; set; }
 }

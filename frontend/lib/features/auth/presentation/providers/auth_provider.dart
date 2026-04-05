@@ -51,24 +51,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._repository) : super(const AuthInitial());
 
-  /// Vérifie si l'utilisateur a un token valide au démarrage.
-  /// Appelle GET /auth/me pour valider le JWT stocké en local.
+  bool _isBusy = false;
+
   Future<void> checkAuthStatus() async {
+    if (_isBusy) return;
+    _isBusy = true;
     state = const AuthLoading();
     try {
       final user = await _repository.getCurrentUser();
+      if (state is AuthUnauthenticated) return;
       if (user != null) {
         state = AuthAuthenticated(user);
       } else {
         state = const AuthUnauthenticated();
       }
     } catch (e) {
-      state = const AuthUnauthenticated();
+      if (state is! AuthUnauthenticated) {
+        state = const AuthUnauthenticated();
+      }
+    } finally {
+      _isBusy = false;
     }
   }
 
-  /// Connexion avec email et mot de passe.
-  /// En cas de succès, passe en AuthAuthenticated (le routeur redirige vers le dashboard).
   Future<void> login(String email, String password) async {
     state = const AuthLoading();
     try {
@@ -79,8 +84,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Inscription d'un nouvel utilisateur.
-  /// L'utilisateur est automatiquement connecté après inscription.
   Future<void> register({
     required String firstName,
     required String lastName,
@@ -103,29 +106,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Déconnexion de l'utilisateur.
-  /// Supprime les tokens en local et révoque côté serveur.
   Future<void> logout() async {
+    if (state is AuthUnauthenticated) return;
     state = const AuthLoading();
     try {
       await _repository.logout();
-    } catch (_) {
-      // On déconnecte localement dans tous les cas.
-    }
+    } catch (_) {}
     state = const AuthUnauthenticated();
+    _isBusy = false;
   }
 
-  /// Extrait un message d'erreur lisible depuis une exception Dio ou autre.
   String _extractErrorMessage(dynamic error) {
-    if (error.toString().contains('DioException')) {
-      if (error.toString().contains('connection refused') ||
-          error.toString().contains('SocketException')) {
+    final msg = error.toString();
+    if (msg.contains('DioException')) {
+      if (msg.contains('connection refused') ||
+          msg.contains('SocketException') ||
+          msg.contains('XMLHttpRequest') ||
+          msg.contains('connectionError') ||
+          msg.contains('connectionTimeout')) {
         return 'Impossible de se connecter au serveur. Vérifiez que le backend est lancé.';
       }
-      if (error.toString().contains('401')) {
+      if (msg.contains('401')) {
         return 'Email ou mot de passe incorrect.';
       }
-      if (error.toString().contains('409')) {
+      if (msg.contains('409')) {
         return 'Cet email est déjà utilisé.';
       }
     }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../constants/app_constants.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -82,36 +81,52 @@ abstract final class RoutePaths {
   static const String contacts = '/business/contacts';
 }
 
+/// Listenable qui notifie GoRouter quand l'état d'authentification change.
+/// Évite de recréer le GoRouter à chaque changement d'état.
+class _AuthStateListenable extends ChangeNotifier {
+  _AuthStateListenable(Ref ref) {
+    _sub = ref.listen<AuthState>(authStateProvider, (_, __) {
+      notifyListeners();
+    });
+  }
+
+  late final ProviderSubscription<AuthState> _sub;
+
+  @override
+  void dispose() {
+    _sub.close();
+    super.dispose();
+  }
+}
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Provider du GoRouter qui réagit à l'état d'authentification.
+/// Provider du GoRouter. Créé UNE SEULE FOIS.
+/// Utilise [refreshListenable] pour réévaluer les redirections.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authListenable = _AuthStateListenable(ref);
+  ref.onDispose(() => authListenable.dispose());
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppConstants.devMode ? RoutePaths.dashboard : RoutePaths.login,
+    initialLocation: RoutePaths.login,
     debugLogDiagnostics: true,
+    refreshListenable: authListenable,
     redirect: (context, state) {
-      // En mode dev, on ne redirige jamais → accès direct à toutes les pages.
-      if (AppConstants.devMode) return null;
-
+      final authState = ref.read(authStateProvider);
       final isAuthenticated = authState is AuthAuthenticated;
       final isOnAuthPage = state.matchedLocation == RoutePaths.login ||
           state.matchedLocation == RoutePaths.register;
 
-      // Pas encore initialisé → rester sur la page actuelle.
       if (authState is AuthInitial || authState is AuthLoading) {
         return null;
       }
 
-      // Non connecté et pas sur une page d'auth → rediriger vers login.
       if (!isAuthenticated && !isOnAuthPage) {
         return RoutePaths.login;
       }
 
-      // Connecté mais sur une page d'auth → rediriger vers dashboard.
       if (isAuthenticated && isOnAuthPage) {
         return RoutePaths.dashboard;
       }
@@ -153,7 +168,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 name: RouteNames.propertyCreate,
-                builder: (context, state) => const PropertyFormPage(),
+                builder: (context, state) => PropertyFormPage(
+                  parentPropertyId: state.uri.queryParameters['parentId'],
+                ),
               ),
               GoRoute(
                 path: ':id',
