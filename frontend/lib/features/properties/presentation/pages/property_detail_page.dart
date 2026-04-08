@@ -6,8 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:immo_manager/config/theme/app_colors.dart';
 import 'package:immo_manager/config/theme/app_text_styles.dart';
 import 'package:immo_manager/config/routes/app_routes.dart';
+import '../../../renovation/domain/entities/renovation_project_entity.dart';
+import '../../../renovation/presentation/providers/renovation_provider.dart';
+import '../../../tenants/domain/entities/tenant_entity.dart';
+import '../../../tenants/presentation/providers/tenant_provider.dart';
 import '../../domain/entities/property_entity.dart';
-import '../../domain/entities/property_event_entity.dart';
 import '../providers/property_provider.dart';
 
 /// Page de détail d'un bien immobilier.
@@ -513,91 +516,85 @@ class PropertyDetailPage extends ConsumerWidget {
     );
   }
 
-  /// Onglet chronologie : affiche les événements du bien triés par date.
+  /// Onglet chronologie : agrège les locataires et travaux rattachés au bien.
+  /// Chaque entrée est cliquable et redirige vers la fiche correspondante.
+  /// La création se fait depuis les sections dédiées (Locataires / Travaux).
   Widget _buildEventsTab(
     BuildContext context,
     WidgetRef ref,
     PropertyEntity property,
   ) {
-    final events = [...property.events]
-      ..sort((a, b) => b.startDate.compareTo(a.startDate));
+    final tenantsAsync = ref.watch(tenantsListProvider);
+    final renovationsAsync = ref.watch(renovationProjectsProvider);
 
-    return Stack(
-      children: [
-        if (events.isEmpty)
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.timeline, size: 64, color: AppColors.textTertiary),
-                const SizedBox(height: 16),
-                Text(
-                  'Aucun événement',
-                  style: AppTextStyles.h4
-                      .copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Ajoutez un locataire, des travaux\nou un autre événement',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
+    // Construit la liste unifiée en filtrant sur propertyId (et ses appartements).
+    final propertyIds = <String>{
+      property.id,
+      ...property.apartments.map((a) => a.id),
+    };
+
+    final tenants = tenantsAsync.maybeWhen(
+      data: (list) => list.where((t) => propertyIds.contains(t.propertyId)).toList(),
+      orElse: () => const <TenantEntity>[],
+    );
+    final renovations = renovationsAsync.maybeWhen(
+      data: (list) => list.where((r) => propertyIds.contains(r.propertyId)).toList(),
+      orElse: () => const <RenovationProjectEntity>[],
+    );
+
+    final items = <_TimelineItem>[
+      ...tenants.map(_TimelineItem.fromTenant),
+      ...renovations.map(_TimelineItem.fromRenovation),
+    ]..sort((a, b) => b.startDate.compareTo(a.startDate));
+
+    // État de chargement global si l'un des deux est encore en fetch initial.
+    final isLoading =
+        tenantsAsync.isLoading || renovationsAsync.isLoading;
+
+    if (isLoading && items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.timeline, size: 64, color: AppColors.textTertiary),
+            const SizedBox(height: 16),
+            Text(
+              'Aucun événement',
+              style: AppTextStyles.h4.copyWith(color: AppColors.textSecondary),
             ),
-          )
-        else
-          ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            itemCount: events.length,
-            itemBuilder: (context, index) =>
-                _buildEventCard(context, ref, property, events[index]),
-          ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton.extended(
-            heroTag: 'add_event_${property.id}',
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.white,
-            onPressed: () => _showAddEventDialog(context, ref, property),
-            icon: const Icon(Icons.add),
-            label: const Text('Événement'),
-          ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'Les locataires et les travaux rattachés à ce bien '
+                'apparaîtront ici. Créez-les depuis leurs sections respectives.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) => _buildTimelineCard(context, items[index]),
     );
   }
 
-  Widget _buildEventCard(
-    BuildContext context,
-    WidgetRef ref,
-    PropertyEntity property,
-    PropertyEventEntity event,
-  ) {
-    final icon = switch (event.eventType) {
-      PropertyEventType.tenant => Icons.person_outline,
-      PropertyEventType.renovation => Icons.construction_outlined,
-      PropertyEventType.other => Icons.info_outline,
-    };
-    final color = switch (event.eventType) {
-      PropertyEventType.tenant => AppColors.primary,
-      PropertyEventType.renovation => AppColors.warning,
-      PropertyEventType.other => AppColors.info,
-    };
-
-    final dateRange = event.endDate != null
-        ? '${_dateFormat.format(event.startDate)} → ${_dateFormat.format(event.endDate!)}'
-        : 'Depuis le ${_dateFormat.format(event.startDate)}';
-
-    String? amountText;
-    if (event.eventType == PropertyEventType.tenant &&
-        event.monthlyRent != null) {
-      amountText = '${_currencyFormat.format(event.monthlyRent)}/mois';
-    } else if (event.cost != null) {
-      amountText = _currencyFormat.format(event.cost);
-    }
+  /// Carte représentant un locataire ou un projet de travaux dans la timeline.
+  Widget _buildTimelineCard(BuildContext context, _TimelineItem item) {
+    final dateRange = item.endDate != null
+        ? '${_dateFormat.format(item.startDate)} → ${_dateFormat.format(item.endDate!)}'
+        : 'Depuis le ${_dateFormat.format(item.startDate)}';
 
     return Card(
       elevation: 0,
@@ -606,155 +603,106 @@ class PropertyDetailPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: AppColors.border),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          event.title,
-                          style: AppTextStyles.labelLarge,
-                        ),
-                      ),
-                      if (event.isActive)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.successLight,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'Actif',
-                            style: AppTextStyles.labelSmall
-                                .copyWith(color: AppColors.success),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    event.eventType.label,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textTertiary),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 12,
-                        color: AppColors.textTertiary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(dateRange, style: AppTextStyles.caption),
-                    ],
-                  ),
-                  if (event.description != null &&
-                      event.description!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      event.description!,
-                      style: AppTextStyles.bodySmall,
-                    ),
-                  ],
-                  if (amountText != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      amountText,
-                      style: AppTextStyles.labelMedium.copyWith(color: color),
-                    ),
-                  ],
-                ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openTimelineItem(context, item),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                backgroundColor: item.color.withValues(alpha: 0.15),
+                child: Icon(item.icon, color: item.color, size: 20),
               ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 20,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: AppTextStyles.labelLarge,
+                          ),
+                        ),
+                        if (item.isActive)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.successLight,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Actif',
+                              style: AppTextStyles.labelSmall
+                                  .copyWith(color: AppColors.success),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.categoryLabel,
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.textTertiary),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 12,
+                          color: AppColors.textTertiary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(dateRange, style: AppTextStyles.caption),
+                      ],
+                    ),
+                    if (item.subtitle != null) ...[
+                      const SizedBox(height: 6),
+                      Text(item.subtitle!, style: AppTextStyles.bodySmall),
+                    ],
+                    if (item.amountText != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        item.amountText!,
+                        style: AppTextStyles.labelMedium
+                            .copyWith(color: item.color),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
                 color: AppColors.textTertiary,
               ),
-              onPressed: () => _confirmDeleteEvent(context, ref, event),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _showAddEventDialog(
-    BuildContext context,
-    WidgetRef ref,
-    PropertyEntity property,
-  ) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => _AddEventDialog(propertyId: property.id),
-    );
-  }
-
-  Future<void> _confirmDeleteEvent(
-    BuildContext context,
-    WidgetRef ref,
-    PropertyEventEntity event,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer l\'événement'),
-        content: Text('Voulez-vous vraiment supprimer "${event.title}" ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await ref.read(propertyEventActionsProvider).delete(
-            eventId: event.id,
-            propertyId: event.propertyId,
-          );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Événement supprimé'),
-            backgroundColor: AppColors.success,
-          ),
+  /// Navigue vers la fiche détail correspondante (locataire ou travaux).
+  void _openTimelineItem(BuildContext context, _TimelineItem item) {
+    switch (item.kind) {
+      case _TimelineKind.tenant:
+        context.pushNamed(
+          RouteNames.tenantDetail,
+          pathParameters: {'id': item.id},
         );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur : $e'),
-            backgroundColor: AppColors.error,
-          ),
+      case _TimelineKind.renovation:
+        context.pushNamed(
+          RouteNames.renovationDetail,
+          pathParameters: {'id': item.id},
         );
-      }
     }
   }
 
@@ -905,236 +853,78 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _TabBarDelegate oldDelegate) => false;
 }
 
-/// Dialogue de saisie d'un nouvel événement (locataire, travaux, autre).
-class _AddEventDialog extends ConsumerStatefulWidget {
-  const _AddEventDialog({required this.propertyId});
+/// Nature d'une entrée de la chronologie d'un bien.
+enum _TimelineKind { tenant, renovation }
 
-  final String propertyId;
+/// Représentation unifiée d'un locataire ou d'un projet de travaux
+/// pour l'affichage dans la chronologie d'un bien.
+class _TimelineItem {
+  const _TimelineItem({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.subtitle,
+    required this.categoryLabel,
+    required this.startDate,
+    required this.endDate,
+    required this.isActive,
+    required this.icon,
+    required this.color,
+    required this.amountText,
+  });
 
-  @override
-  ConsumerState<_AddEventDialog> createState() => _AddEventDialogState();
-}
+  final String id;
+  final _TimelineKind kind;
+  final String title;
+  final String? subtitle;
+  final String categoryLabel;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final bool isActive;
+  final IconData icon;
+  final Color color;
+  final String? amountText;
 
-class _AddEventDialogState extends ConsumerState<_AddEventDialog> {
-  static final _dateFormat = DateFormat('dd/MM/yyyy', 'fr_FR');
+  static final _currencyFormat = NumberFormat.currency(
+    locale: 'fr_FR',
+    symbol: '€',
+    decimalDigits: 0,
+  );
 
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _rentController = TextEditingController();
-  final _depositController = TextEditingController();
-  final _costController = TextEditingController();
-
-  PropertyEventType _type = PropertyEventType.tenant;
-  DateTime _startDate = DateTime.now();
-  DateTime? _endDate;
-  bool _isSaving = false;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _rentController.dispose();
-    _depositController.dispose();
-    _costController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate({required bool isStart}) async {
-    final initial =
-        isStart ? _startDate : (_endDate ?? _startDate);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      locale: const Locale('fr', 'FR'),
+  /// Construit une entrée depuis un locataire.
+  factory _TimelineItem.fromTenant(TenantEntity tenant) {
+    return _TimelineItem(
+      id: tenant.id,
+      kind: _TimelineKind.tenant,
+      title: '${tenant.firstName} ${tenant.lastName}',
+      subtitle: tenant.email.isNotEmpty ? tenant.email : null,
+      categoryLabel: 'Locataire',
+      startDate: tenant.moveInDate,
+      endDate: tenant.moveOutDate,
+      isActive: tenant.status == TenantStatus.active ||
+          tenant.status == TenantStatus.latePayment,
+      icon: Icons.person_outline,
+      color: AppColors.primary,
+      amountText: '${_currencyFormat.format(tenant.monthlyRent)}/mois',
     );
-    if (picked == null) return;
-    setState(() {
-      if (isStart) {
-        _startDate = picked;
-      } else {
-        _endDate = picked;
-      }
-    });
   }
 
-  Future<void> _onSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_isSaving) return;
-
-    setState(() => _isSaving = true);
-    final now = DateTime.now();
-    final event = PropertyEventEntity(
-      id: '',
-      propertyId: widget.propertyId,
-      userId: '',
-      eventType: _type,
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim().isNotEmpty
-          ? _descriptionController.text.trim()
-          : null,
-      startDate: _startDate,
-      endDate: _endDate,
-      monthlyRent: _type == PropertyEventType.tenant
-          ? double.tryParse(_rentController.text.trim())
-          : null,
-      depositAmount: _type == PropertyEventType.tenant
-          ? double.tryParse(_depositController.text.trim())
-          : null,
-      cost: _type != PropertyEventType.tenant
-          ? double.tryParse(_costController.text.trim())
-          : null,
-      createdAt: now,
-      updatedAt: now,
-    );
-
-    try {
-      await ref.read(propertyEventActionsProvider).create(event);
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Événement ajouté'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur : $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isTenant = _type == PropertyEventType.tenant;
-
-    return AlertDialog(
-      title: const Text('Nouvel événement'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DropdownButtonFormField<PropertyEventType>(
-                value: _type,
-                decoration: const InputDecoration(labelText: 'Type'),
-                items: PropertyEventType.values
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(t.label),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _type = v);
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Titre'),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Requis' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                decoration:
-                    const InputDecoration(labelText: 'Description (optionnel)'),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () => _pickDate(isStart: true),
-                child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Date de début'),
-                  child: Text(_dateFormat.format(_startDate)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () => _pickDate(isStart: false),
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Date de fin (optionnelle)',
-                    suffixIcon: _endDate != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () => setState(() => _endDate = null),
-                          )
-                        : null,
-                  ),
-                  child: Text(
-                    _endDate != null
-                        ? _dateFormat.format(_endDate!)
-                        : 'Aucune',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (isTenant) ...[
-                TextFormField(
-                  controller: _rentController,
-                  decoration:
-                      const InputDecoration(labelText: 'Loyer mensuel (€)'),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Requis';
-                    if (double.tryParse(v.trim()) == null) {
-                      return 'Nombre invalide';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _depositController,
-                  decoration: const InputDecoration(
-                    labelText: 'Dépôt de garantie (€)',
-                  ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ] else ...[
-                TextFormField(
-                  controller: _costController,
-                  decoration: const InputDecoration(labelText: 'Coût (€)'),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: _isSaving ? null : _onSubmit,
-          child: _isSaving
-              ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Ajouter'),
-        ),
-      ],
+  /// Construit une entrée depuis un projet de travaux.
+  factory _TimelineItem.fromRenovation(RenovationProjectEntity project) {
+    final active = project.status == RenovationStatus.inProgress ||
+        project.status == RenovationStatus.planning;
+    return _TimelineItem(
+      id: project.id,
+      kind: _TimelineKind.renovation,
+      title: project.projectName,
+      subtitle: project.description,
+      categoryLabel: 'Travaux',
+      startDate: project.startDate,
+      endDate: project.actualEndDate ?? project.expectedEndDate,
+      isActive: active,
+      icon: Icons.construction_outlined,
+      color: AppColors.warning,
+      amountText: _currencyFormat.format(project.totalBudget),
     );
   }
 }

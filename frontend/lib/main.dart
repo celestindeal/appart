@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -16,6 +17,9 @@ import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/properties/data/datasources/property_remote_datasource_impl.dart';
 import 'features/properties/data/repositories/property_repository_impl.dart';
 import 'features/properties/presentation/providers/property_provider.dart';
+import 'features/tenants/data/datasources/tenant_remote_datasource_impl.dart';
+import 'features/tenants/data/repositories/tenant_repository_impl.dart';
+import 'features/tenants/presentation/providers/tenant_provider.dart';
 
 /// Point d'entrée de l'application.
 void main() async {
@@ -50,11 +54,17 @@ void main() async {
     remoteDatasource: propertyRemoteDatasource,
   );
 
+  final tenantRemoteDatasource = TenantRemoteDatasourceImpl(dio: dio);
+  final tenantRepository = TenantRepositoryImpl(
+    remoteDatasource: tenantRemoteDatasource,
+  );
+
   // Container unique partagé entre l'intercepteur et l'arbre widget.
   final container = ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(authRepository),
       propertyRepositoryProvider.overrideWithValue(propertyRepository),
+      tenantRepositoryProvider.overrideWithValue(tenantRepository),
     ],
   );
 
@@ -109,6 +119,15 @@ class _ImmoManagerAppState extends ConsumerState<ImmoManagerApp> {
       themeMode: ThemeMode.light,
       routerConfig: router,
       locale: const Locale('fr', 'FR'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('fr', 'FR'),
+        Locale('en', 'US'),
+      ],
     );
   }
 }

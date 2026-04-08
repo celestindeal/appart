@@ -53,6 +53,8 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
   final _chargesController = TextEditingController();
 
   bool _isSaving = false;
+  bool _isLoadingInitial = false;
+  String? _loadError;
 
   /// Indique si le type sélectionné est un immeuble (pas de surface/loyer propre).
   bool get _isBuilding => _selectedType == PropertyType.building;
@@ -63,46 +65,58 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
     // Un appartement enfant est forcément de type apartment.
     if (_isChildApartment) {
       _selectedType = PropertyType.apartment;
-      // Pré-remplit l'adresse depuis l'immeuble parent.
-      _loadParentAddress();
     }
-    if (_isEditing) {
-      _loadPropertyData();
+    // Chargement initial (édition et/ou pré-remplissage parent).
+    if (_isEditing || _isChildApartment) {
+      _isLoadingInitial = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitialData());
     }
   }
 
-  /// Pré-remplit les champs de localisation depuis l'immeuble parent.
-  void _loadParentAddress() {
-    final parentAsync = ref.read(propertyDetailProvider(widget.parentPropertyId!));
-    parentAsync.whenData((parent) {
-      _addressController.text = parent.address;
-      _postalCodeController.text = parent.postalCode;
-      _cityController.text = parent.city;
-      _countryController.text = parent.country;
-      if (mounted) setState(() {});
-    });
-  }
-
-  void _loadPropertyData() {
-    final propertyAsync = ref.read(propertyDetailProvider(widget.propertyId!));
-    propertyAsync.whenData((property) {
-      _nameController.text = property.name;
-      _descriptionController.text = property.description ?? '';
-      _selectedType = property.propertyType;
-      _addressController.text = property.address;
-      _postalCodeController.text = property.postalCode;
-      _cityController.text = property.city;
-      _countryController.text = property.country;
-      _surfaceController.text = property.surface.toStringAsFixed(0);
-      _roomsController.text = property.roomCount?.toString() ?? '';
-      _bathroomsController.text = property.bathroomCount?.toString() ?? '';
-      _parkingController.text = property.parkingSpaces?.toString() ?? '';
-      _priceController.text = property.acquisitionPrice.toStringAsFixed(0);
-      _taxController.text = property.propertyTax?.toStringAsFixed(0) ?? '';
-      _insuranceController.text = property.insurance?.toStringAsFixed(0) ?? '';
-      _chargesController.text = property.charges?.toStringAsFixed(0) ?? '';
-      if (mounted) setState(() {});
-    });
+  /// Charge les données initiales de manière asynchrone :
+  /// — en mode édition : les données du bien à modifier
+  /// — pour un appartement enfant : l'adresse de l'immeuble parent
+  Future<void> _loadInitialData() async {
+    try {
+      if (_isEditing) {
+        final property =
+            await ref.read(propertyDetailProvider(widget.propertyId!).future);
+        if (!mounted) return;
+        _nameController.text = property.name;
+        _descriptionController.text = property.description ?? '';
+        _selectedType = property.propertyType;
+        _addressController.text = property.address;
+        _postalCodeController.text = property.postalCode;
+        _cityController.text = property.city;
+        _countryController.text = property.country;
+        _surfaceController.text = property.surface > 0
+            ? property.surface.toStringAsFixed(0)
+            : '';
+        _roomsController.text = property.roomCount?.toString() ?? '';
+        _bathroomsController.text = property.bathroomCount?.toString() ?? '';
+        _parkingController.text = property.parkingSpaces?.toString() ?? '';
+        _priceController.text = property.acquisitionPrice > 0
+            ? property.acquisitionPrice.toStringAsFixed(0)
+            : '';
+        _taxController.text = property.propertyTax?.toStringAsFixed(0) ?? '';
+        _insuranceController.text =
+            property.insurance?.toStringAsFixed(0) ?? '';
+        _chargesController.text = property.charges?.toStringAsFixed(0) ?? '';
+      } else if (_isChildApartment) {
+        final parent = await ref
+            .read(propertyDetailProvider(widget.parentPropertyId!).future);
+        if (!mounted) return;
+        _addressController.text = parent.address;
+        _postalCodeController.text = parent.postalCode;
+        _cityController.text = parent.city;
+        _countryController.text = parent.country;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _loadError = e.toString();
+    } finally {
+      if (mounted) setState(() => _isLoadingInitial = false);
+    }
   }
 
   @override
@@ -137,7 +151,44 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
                   : 'Nouveau Bien',
         ),
       ),
-      body: Form(
+      body: _isLoadingInitial
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          size: 48, color: AppColors.error),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Impossible de charger le bien',
+                        style: AppTextStyles.h4,
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          _loadError!,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _loadError = null;
+                            _isLoadingInitial = true;
+                          });
+                          _loadInitialData();
+                        },
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                )
+              : Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -528,8 +579,12 @@ class _PropertyFormPageState extends ConsumerState<PropertyFormPage> {
         await repository.createProperty(property);
       }
 
-      /// Rafraîchit la liste des biens et le détail du parent si c'est un appartement.
+      /// Rafraîchit la liste des biens, le détail du bien édité,
+      /// et le détail du parent si c'est un appartement enfant.
       ref.invalidate(propertiesListProvider);
+      if (_isEditing) {
+        ref.invalidate(propertyDetailProvider(widget.propertyId!));
+      }
       if (widget.parentPropertyId != null) {
         ref.invalidate(propertyDetailProvider(widget.parentPropertyId!));
       }
