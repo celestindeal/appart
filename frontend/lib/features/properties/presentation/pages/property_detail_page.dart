@@ -64,6 +64,16 @@ class PropertyDetailPage extends ConsumerWidget {
     WidgetRef ref,
     PropertyEntity property,
   ) {
+    // Locataires du compte — sert à dériver le loyer effectif (actuel ou dernier
+    // connu) pour les métriques, l'onglet finances et le cash-flow.
+    final tenants = ref.watch(tenantsListProvider).maybeWhen(
+          data: (list) => list,
+          orElse: () => const <TenantEntity>[],
+        );
+
+    final totalRent = _resolveTotalRent(property, tenants);
+    final grossYield = _resolveGrossYield(property, tenants);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: DefaultTabController(
@@ -115,8 +125,8 @@ class PropertyDetailPage extends ConsumerWidget {
                     const SizedBox(width: 8),
                     _buildMetricCard(
                       'Loyer total',
-                      property.totalMonthlyRent != null
-                          ? '${_currencyFormat.format(property.totalMonthlyRent)}/m'
+                      totalRent != null
+                          ? '${_currencyFormat.format(totalRent)}/m'
                           : 'N/A',
                       Icons.payments_outlined,
                       AppColors.secondary,
@@ -124,8 +134,8 @@ class PropertyDetailPage extends ConsumerWidget {
                     const SizedBox(width: 8),
                     _buildMetricCard(
                       'Rendement',
-                      property.grossYield != null
-                          ? '${property.grossYield!.toStringAsFixed(1)}%'
+                      grossYield != null
+                          ? '${grossYield.toStringAsFixed(1)}%'
                           : 'N/A',
                       Icons.trending_up,
                       AppColors.accent,
@@ -164,7 +174,7 @@ class PropertyDetailPage extends ConsumerWidget {
           body: TabBarView(
             children: [
               _buildDetailsTab(context, ref, property),
-              _buildFinancesTab(property),
+              _buildFinancesTab(property, tenants),
               _buildEventsTab(context, ref, property),
               _buildDocumentsTab(),
             ],
@@ -399,7 +409,14 @@ class PropertyDetailPage extends ConsumerWidget {
   }
 
   /// Onglet finances avec valeurs agrégées pour les immeubles.
-  Widget _buildFinancesTab(PropertyEntity property) {
+  /// Le loyer affiché est celui du locataire actuel, ou à défaut du dernier
+  /// locataire connu (résolu via la liste réelle des locataires).
+  Widget _buildFinancesTab(
+    PropertyEntity property,
+    List<TenantEntity> tenants,
+  ) {
+    final totalRent = _resolveTotalRent(property, tenants);
+    final cashFlow = _calculateMonthlyCashFlow(property, totalRent);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -418,7 +435,7 @@ class PropertyDetailPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildFinanceRow(
                   property.isBuilding ? 'Loyer total (${property.apartments.length} appts)' : 'Loyer mensuel',
-                  property.totalMonthlyRent,
+                  totalRent,
                   isIncome: true,
                 ),
                 // Détail par appartement pour les immeubles.
@@ -427,7 +444,7 @@ class PropertyDetailPage extends ConsumerWidget {
                     padding: const EdgeInsets.only(left: 16),
                     child: _buildFinanceRow(
                       '  ${apt.name}',
-                      apt.monthlyRent,
+                      _resolveRent(apt.id, tenants),
                       isIncome: true,
                     ),
                   )),
@@ -445,9 +462,9 @@ class PropertyDetailPage extends ConsumerWidget {
                 const Divider(),
                 _buildFinanceRow(
                   'Cash-flow mensuel',
-                  _calculateMonthlyCashFlow(property),
+                  cashFlow,
                   isBold: true,
-                  isIncome: (_calculateMonthlyCashFlow(property) ?? 0) >= 0,
+                  isIncome: (cashFlow ?? 0) >= 0,
                 ),
               ],
             ),
@@ -774,15 +791,68 @@ class PropertyDetailPage extends ConsumerWidget {
     );
   }
 
-  /// Calcule le cash-flow mensuel net.
-  /// Pour un immeuble, utilise le loyer total agrégé depuis les appartements.
-  double? _calculateMonthlyCashFlow(PropertyEntity property) {
-    final rent = property.totalMonthlyRent;
+  /// Calcule le cash-flow mensuel net à partir du loyer effectif fourni
+  /// (résolu en amont depuis les locataires actuels ou le dernier connu).
+  double? _calculateMonthlyCashFlow(PropertyEntity property, double? rent) {
     if (rent == null) return null;
     final tax = (property.propertyTax ?? 0) / 12;
     final insurance = (property.insurance ?? 0) / 12;
     final charges = property.charges ?? 0;
     return rent - tax - insurance - charges;
+  }
+
+  /// Résout le loyer d'un bien (par son id) à partir de la liste des locataires.
+  /// Privilégie un locataire actif (Active ou LatePayment), sinon retombe sur
+  /// le locataire le plus récent par date d'entrée. Renvoie null si aucun
+  /// locataire n'a jamais été enregistré pour ce bien.
+  static double? _resolveRent(String propertyId, List<TenantEntity> tenants) {
+    final forProperty =
+        tenants.where((t) => t.propertyId == propertyId).toList();
+    if (forProperty.isEmpty) return null;
+
+    final active = forProperty
+        .where((t) =>
+            t.status == TenantStatus.active ||
+            t.status == TenantStatus.latePayment)
+        .toList();
+    if (active.isNotEmpty) {
+      active.sort((a, b) => b.moveInDate.compareTo(a.moveInDate));
+      return active.first.monthlyRent;
+    }
+
+    forProperty.sort((a, b) => b.moveInDate.compareTo(a.moveInDate));
+    return forProperty.first.monthlyRent;
+  }
+
+  /// Loyer total effectif : somme des loyers résolus des appartements pour un
+  /// immeuble, ou loyer résolu du bien lui-même sinon.
+  static double? _resolveTotalRent(
+    PropertyEntity property,
+    List<TenantEntity> tenants,
+  ) {
+    if (property.isBuilding && property.apartments.isNotEmpty) {
+      double sum = 0;
+      var any = false;
+      for (final apt in property.apartments) {
+        final r = _resolveRent(apt.id, tenants);
+        if (r != null) {
+          sum += r;
+          any = true;
+        }
+      }
+      return any ? sum : null;
+    }
+    return _resolveRent(property.id, tenants);
+  }
+
+  /// Rendement brut effectif basé sur le loyer résolu via les locataires.
+  static double? _resolveGrossYield(
+    PropertyEntity property,
+    List<TenantEntity> tenants,
+  ) {
+    final rent = _resolveTotalRent(property, tenants);
+    if (rent == null || property.acquisitionPrice <= 0) return null;
+    return (rent * 12) / property.acquisitionPrice * 100;
   }
 
   void _showDeleteDialog(
@@ -804,9 +874,26 @@ class PropertyDetailPage extends ConsumerWidget {
             child: const Text('Annuler'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              context.pop();
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await ref
+                    .read(propertyRepositoryProvider)
+                    .deleteProperty(property.id);
+                ref.invalidate(propertiesListProvider);
+                ref.invalidate(propertyDetailProvider(property.id));
+                if (property.parentPropertyId != null) {
+                  ref.invalidate(
+                    propertyDetailProvider(property.parentPropertyId!),
+                  );
+                }
+                if (context.mounted) context.pop();
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Erreur lors de la suppression : $e')),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Supprimer'),
