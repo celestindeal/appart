@@ -47,4 +47,5 @@ public class Property : BaseEntity
     public ICollection<RenovationProject> RenovationProjects { get; set; } = new List<RenovationProject>();
     public ICollection<PropertyExpense> PropertyExpenses { get; set; } = new List<PropertyExpense>();
     public ICollection<PropertyEvent> Events { get; set; } = new List<PropertyEvent>();
+    public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 }

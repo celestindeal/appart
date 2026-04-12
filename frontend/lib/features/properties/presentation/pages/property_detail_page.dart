@@ -8,6 +8,9 @@ import 'package:immo_manager/config/theme/app_text_styles.dart';
 import 'package:immo_manager/config/routes/app_routes.dart';
 import '../../../renovation/domain/entities/renovation_project_entity.dart';
 import '../../../renovation/presentation/providers/renovation_provider.dart';
+import '../../../loans/domain/entities/loan_entity.dart';
+import '../../../loans/presentation/pages/loan_form_page.dart';
+import '../../../loans/presentation/providers/loan_provider.dart';
 import '../../../tenants/domain/entities/tenant_entity.dart';
 import '../../../tenants/presentation/providers/tenant_provider.dart';
 import '../../domain/entities/property_entity.dart';
@@ -174,7 +177,7 @@ class PropertyDetailPage extends ConsumerWidget {
           body: TabBarView(
             children: [
               _buildDetailsTab(context, ref, property),
-              _buildFinancesTab(property, tenants),
+              _buildFinancesTab(context, ref, property, tenants),
               _buildEventsTab(context, ref, property),
               _buildDocumentsTab(),
             ],
@@ -412,14 +415,31 @@ class PropertyDetailPage extends ConsumerWidget {
   /// Le loyer affiché est celui du locataire actuel, ou à défaut du dernier
   /// locataire connu (résolu via la liste réelle des locataires).
   Widget _buildFinancesTab(
+    BuildContext context,
+    WidgetRef ref,
     PropertyEntity property,
     List<TenantEntity> tenants,
   ) {
+    final loansAsync = ref.watch(loansForPropertyProvider(property.id));
+    final loans = loansAsync.maybeWhen(
+      data: (list) => list,
+      orElse: () => const <LoanEntity>[],
+    );
+
     final totalRent = _resolveTotalRent(property, tenants);
-    final cashFlow = _calculateMonthlyCashFlow(property, totalRent);
+    final totalLoanPayment = loans
+        .where((l) => l.isActive)
+        .fold(0.0, (sum, l) => sum + l.monthlyPayment);
+    final cashFlow = _calculateMonthlyCashFlow(
+      property,
+      totalRent,
+      totalLoanPayment,
+    );
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // ── Bilan mensuel ──
         Card(
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -434,31 +454,42 @@ class PropertyDetailPage extends ConsumerWidget {
                 Text('Bilan mensuel', style: AppTextStyles.h4),
                 const SizedBox(height: 16),
                 _buildFinanceRow(
-                  property.isBuilding ? 'Loyer total (${property.apartments.length} appts)' : 'Loyer mensuel',
+                  property.isBuilding
+                      ? 'Loyer total (${property.apartments.length} appts)'
+                      : 'Loyer mensuel',
                   totalRent,
                   isIncome: true,
                 ),
-                // Détail par appartement pour les immeubles.
-                if (property.isBuilding && property.apartments.isNotEmpty) ...[
+                if (property.isBuilding &&
+                    property.apartments.isNotEmpty) ...[
                   ...property.apartments.map((apt) => Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: _buildFinanceRow(
-                      '  ${apt.name}',
-                      _resolveRent(apt.id, tenants),
-                      isIncome: true,
-                    ),
-                  )),
+                        padding: const EdgeInsets.only(left: 16),
+                        child: _buildFinanceRow(
+                          '  ${apt.name}',
+                          _resolveRent(apt.id, tenants),
+                          isIncome: true,
+                        ),
+                      )),
                 ],
                 const Divider(),
-                _buildFinanceRow('Taxe foncière (mensuel)',
-                    property.propertyTax != null
-                        ? property.propertyTax! / 12
-                        : null),
-                _buildFinanceRow('Assurance (mensuel)',
-                    property.insurance != null
-                        ? property.insurance! / 12
-                        : null),
+                _buildFinanceRow(
+                  'Taxe foncière (mensuel)',
+                  property.propertyTax != null
+                      ? property.propertyTax! / 12
+                      : null,
+                ),
+                _buildFinanceRow(
+                  'Assurance (mensuel)',
+                  property.insurance != null
+                      ? property.insurance! / 12
+                      : null,
+                ),
                 _buildFinanceRow('Charges', property.charges),
+                if (totalLoanPayment > 0)
+                  _buildFinanceRow(
+                    'Mensualité emprunt',
+                    totalLoanPayment,
+                  ),
                 const Divider(),
                 _buildFinanceRow(
                   'Cash-flow mensuel',
@@ -471,6 +502,67 @@ class PropertyDetailPage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
+
+        // ── Emprunts ──
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Emprunts', style: AppTextStyles.h4),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline,
+                          color: AppColors.primary),
+                      tooltip: 'Ajouter un emprunt',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => LoanFormPage(
+                            propertyId: property.id,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (loansAsync.isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (loans.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Aucun emprunt enregistré',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.textTertiary),
+                    ),
+                  )
+                else
+                  ...loans.map((loan) => _buildLoanCard(
+                        context,
+                        ref,
+                        property,
+                        loan,
+                      )),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Acquisition ──
         Card(
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -502,6 +594,186 @@ class PropertyDetailPage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLoanCard(
+    BuildContext context,
+    WidgetRef ref,
+    PropertyEntity property,
+    LoanEntity loan,
+  ) {
+    final durationYears = loan.durationMonths ~/ 12;
+    final durationRemainderMonths = loan.durationMonths % 12;
+    final durationLabel = durationRemainderMonths > 0
+        ? '${durationYears}a ${durationRemainderMonths}m'
+        : '${durationYears} ans';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loan.name,
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (loan.bankName != null && loan.bankName!.isNotEmpty)
+                      Text(
+                        loan.bankName!,
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                  ],
+                ),
+              ),
+              if (loan.isActive)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    loan.isInDeferralPeriod ? 'Différé' : 'En cours',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.success),
+                  ),
+                )
+              else
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.textTertiary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Terminé',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textTertiary),
+                  ),
+                ),
+              PopupMenuButton<String>(
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                  PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                ],
+                onSelected: (action) {
+                  if (action == 'edit') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LoanFormPage(
+                          propertyId: property.id,
+                          loan: loan,
+                        ),
+                      ),
+                    );
+                  } else if (action == 'delete') {
+                    _showDeleteLoanDialog(context, ref, loan);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildLoanMetric(
+                  'Montant', _currencyFormat.format(loan.amount)),
+              _buildLoanMetric('Taux', '${loan.interestRate}%'),
+              _buildLoanMetric('Durée', durationLabel),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              _buildLoanMetric(
+                'Mensualité',
+                _currencyFormat.format(loan.monthlyPayment),
+              ),
+              if (loan.deferralMonths > 0)
+                _buildLoanMetric(
+                  'Différé',
+                  '${loan.deferralMonths} mois (${loan.deferralType?.label ?? ""})',
+                ),
+              _buildLoanMetric(
+                'Restant',
+                '${loan.remainingMonths} mois',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoanMetric(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: AppTextStyles.caption
+                  .copyWith(color: AppColors.textTertiary, fontSize: 11)),
+          Text(value, style: AppTextStyles.bodySmall),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteLoanDialog(
+    BuildContext context,
+    WidgetRef ref,
+    LoanEntity loan,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer l\'emprunt'),
+        content: Text(
+          'Supprimer "${loan.name}" ? Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await ref.read(loanActionsProvider).delete(
+                      loanId: loan.id,
+                      propertyId: loan.propertyId,
+                    );
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erreur : $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -793,12 +1065,16 @@ class PropertyDetailPage extends ConsumerWidget {
 
   /// Calcule le cash-flow mensuel net à partir du loyer effectif fourni
   /// (résolu en amont depuis les locataires actuels ou le dernier connu).
-  double? _calculateMonthlyCashFlow(PropertyEntity property, double? rent) {
+  double? _calculateMonthlyCashFlow(
+    PropertyEntity property,
+    double? rent,
+    double loanPayment,
+  ) {
     if (rent == null) return null;
     final tax = (property.propertyTax ?? 0) / 12;
     final insurance = (property.insurance ?? 0) / 12;
     final charges = property.charges ?? 0;
-    return rent - tax - insurance - charges;
+    return rent - tax - insurance - charges - loanPayment;
   }
 
   /// Résout le loyer d'un bien (par son id) à partir de la liste des locataires.

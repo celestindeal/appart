@@ -36,6 +36,10 @@ abstract final class ApiEndpoints {
   static String tenantPayments(String id) => '/tenants/$id/payments';
   static String tenantReminders(String id) => '/tenants/$id/reminders';
 
+  // ── Loans (Emprunts) ──────────────────────────────────────
+  static const String loans = '/loans';
+  static String loanById(String id) => '/loans/$id';
+
   // ── Business (Gestion) ────────────────────────────────────
   static const String accounting = '/business/accounting';
   static const String contacts = '/business/contacts';

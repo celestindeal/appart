@@ -158,6 +158,59 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                     b.ToTable("Contacts");
                 });
 
+            modelBuilder.Entity("ImmoManager.Domain.Entities.Loan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DeferralMonths")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DeferralType")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DurationMonths")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("InterestRate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("MonthlyPayment")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
+
+                    b.ToTable("Loans", (string)null);
+                });
+
             modelBuilder.Entity("ImmoManager.Domain.Entities.Property", b =>
                 {
                     b.Property<Guid>("Id")
@@ -924,6 +977,17 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ImmoManager.Domain.Entities.Loan", b =>
+                {
+                    b.HasOne("ImmoManager.Domain.Entities.Property", "Property")
+                        .WithMany("Loans")
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+                });
+
             modelBuilder.Entity("ImmoManager.Domain.Entities.Property", b =>
                 {
                     b.HasOne("ImmoManager.Domain.Entities.Property", "ParentProperty")
@@ -1095,6 +1159,8 @@ namespace ImmoManager.Infrastructure.Persistence.Migrations
                     b.Navigation("Apartments");
 
                     b.Navigation("Events");
+
+                    b.Navigation("Loans");
 
                     b.Navigation("PropertyDocuments");
 

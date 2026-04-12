@@ -24,6 +24,7 @@ public class ImmoManagerDbContext : DbContext
     public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<PropertyEvent> PropertyEvents => Set<PropertyEvent>();
+    public DbSet<Loan> Loans => Set<Loan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

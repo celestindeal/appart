@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPropertyService, PropertyService>();
         services.AddScoped<IPropertyEventService, PropertyEventService>();
         services.AddScoped<ITenantService, TenantService>();
+        services.AddScoped<ILoanService, LoanService>();
 
         // Identity / Auth
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));

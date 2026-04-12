@@ -96,6 +96,20 @@ public class PropertyEventConfiguration : IEntityTypeConfiguration<PropertyEvent
     }
 }
 
+public class LoanConfiguration : IEntityTypeConfiguration<Loan>
+{
+    public void Configure(EntityTypeBuilder<Loan> builder)
+    {
+        builder.ToTable("Loans");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Name).HasMaxLength(200).IsRequired();
+        builder.Property(e => e.BankName).HasMaxLength(200);
+        builder.Property(e => e.DeferralType).HasMaxLength(20);
+        builder.HasIndex(e => e.PropertyId);
+        builder.HasOne(e => e.Property).WithMany(p => p.Loans).HasForeignKey(e => e.PropertyId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class ContactConfiguration : IEntityTypeConfiguration<Contact>
 {
     public void Configure(EntityTypeBuilder<Contact> builder)

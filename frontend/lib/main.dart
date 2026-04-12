@@ -17,6 +17,8 @@ import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/properties/data/datasources/property_remote_datasource_impl.dart';
 import 'features/properties/data/repositories/property_repository_impl.dart';
 import 'features/properties/presentation/providers/property_provider.dart';
+import 'features/loans/data/datasources/loan_remote_datasource.dart';
+import 'features/loans/presentation/providers/loan_provider.dart';
 import 'features/tenants/data/datasources/tenant_remote_datasource_impl.dart';
 import 'features/tenants/data/repositories/tenant_repository_impl.dart';
 import 'features/tenants/presentation/providers/tenant_provider.dart';
@@ -59,12 +61,15 @@ void main() async {
     remoteDatasource: tenantRemoteDatasource,
   );
 
+  final loanDatasource = LoanRemoteDatasource(dio: dio);
+
   // Container unique partagé entre l'intercepteur et l'arbre widget.
   final container = ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(authRepository),
       propertyRepositoryProvider.overrideWithValue(propertyRepository),
       tenantRepositoryProvider.overrideWithValue(tenantRepository),
+      loanRemoteDatasourceProvider.overrideWithValue(loanDatasource),
     ],
   );
 
