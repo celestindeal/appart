@@ -51,7 +51,7 @@ class RenovationProjectsPage extends ConsumerWidget {
             margin: const EdgeInsets.only(bottom: 12),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () => context.push('/renovations/${p.id}'),
+              onTap: () => context.go('/renovations/${p.id}'),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(

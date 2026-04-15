@@ -1278,7 +1278,10 @@
         },
         "runtime": {
           "bin/placeholder/ImmoManager.Application.dll": {}
-        }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
       },
       "ImmoManager.Domain/1.0.0": {
         "type": "project",
@@ -1305,7 +1308,10 @@
         },
         "runtime": {
           "bin/placeholder/ImmoManager.Infrastructure.dll": {}
-        }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
       }
     }
   },

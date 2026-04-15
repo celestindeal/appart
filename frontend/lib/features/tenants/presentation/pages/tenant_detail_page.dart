@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:immo_manager/config/routes/app_routes.dart';
 import 'package:immo_manager/config/theme/app_colors.dart';
 import 'package:immo_manager/config/theme/app_text_styles.dart';
 import '../../domain/entities/tenant_entity.dart';
 import '../../domain/entities/rent_payment_entity.dart';
-import '../../domain/entities/tenant_document_entity.dart';
 import '../../domain/entities/reminder_entity.dart';
+import '../../../documents/data/datasources/document_remote_datasource.dart';
+import '../../../documents/domain/entities/document_entity.dart';
+import '../../../documents/presentation/widgets/documents_section.dart';
+import '../providers/payment_provider.dart';
 import '../providers/tenant_provider.dart';
+import '../widgets/payment_form_dialog.dart';
 import '../widgets/payment_status_badge.dart';
-import 'tenant_form_page.dart';
 
 /// Page de detail d'un locataire avec onglets.
 class TenantDetailPage extends ConsumerWidget {
@@ -74,10 +79,9 @@ class _TenantDetailContent extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => TenantFormPage(tenantId: tenant.id),
-                  ),
+                context.goNamed(
+                  RouteNames.tenantEdit,
+                  pathParameters: {'id': tenant.id},
                 );
               },
             ),
@@ -328,73 +332,217 @@ class _InformationsTab extends StatelessWidget {
 
 // ── Onglet Paiements ────────────────────────────────────────
 
-class _PaiementsTab extends StatelessWidget {
+class _PaiementsTab extends ConsumerWidget {
   const _PaiementsTab({required this.tenant});
 
   final TenantEntity tenant;
 
-  @override
-  Widget build(BuildContext context) {
-    // TODO: Charger les paiements depuis le provider
-    final List<RentPaymentEntity> payments = [];
+  Future<void> _openAddDialog(BuildContext context) async {
+    await PaymentFormDialog.show(
+      context,
+      tenantId: tenant.id,
+      propertyId: tenant.propertyId,
+      defaultAmount: tenant.monthlyRent,
+    );
+  }
 
-    if (payments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.payment_outlined, size: 48, color: AppColors.disabled),
-            const SizedBox(height: 16),
-            Text(
-              'Aucun paiement enregistre',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      );
+  Future<void> _openEditDialog(
+    BuildContext context,
+    RentPaymentEntity payment,
+  ) async {
+    await PaymentFormDialog.show(
+      context,
+      tenantId: tenant.id,
+      propertyId: tenant.propertyId,
+      payment: payment,
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    RentPaymentEntity payment,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer le paiement'),
+        content: const Text('Cette action est irréversible. Continuer ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(paymentActionsProvider).delete(
+            paymentId: payment.id,
+            tenantId: tenant.id,
+          );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur : $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final paymentsAsync = ref.watch(paymentsForTenantProvider(tenant.id));
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final currencyFormat =
+        NumberFormat.currency(locale: 'fr_FR', symbol: '\u20ac');
 
     return Stack(
       children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Date')),
-              DataColumn(label: Text('Montant')),
-              DataColumn(label: Text('Statut')),
-              DataColumn(label: Text('Methode')),
-            ],
-            rows: payments.map((payment) {
-              final dateFormat = DateFormat('dd/MM/yyyy');
-              final currencyFormat =
-                  NumberFormat.currency(locale: 'fr_FR', symbol: '\u20ac');
-
-              return DataRow(cells: [
-                DataCell(Text(dateFormat.format(payment.paymentDueDate))),
-                DataCell(Text(
-                  currencyFormat.format(payment.amount),
-                  style: TextStyle(
-                    color: payment.isPaid ? AppColors.success : AppColors.error,
-                    fontWeight: FontWeight.w600,
+        paymentsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline,
+                      size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  Text('Erreur de chargement',
+                      style: AppTextStyles.bodyMedium),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => ref
+                        .invalidate(paymentsForTenantProvider(tenant.id)),
+                    child: const Text('Réessayer'),
                   ),
-                )),
-                DataCell(PaymentStatusBadge(status: payment.status)),
-                DataCell(Text(payment.paymentMethod?.label ?? '-')),
-              ]);
-            }).toList(),
+                ],
+              ),
+            ),
           ),
+          data: (payments) {
+            if (payments.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.payment_outlined,
+                        size: 48, color: AppColors.disabled),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Aucun paiement enregistré',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Appuyez sur + pour en ajouter un',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              itemCount: payments.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final payment = payments[index];
+                return Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: ListTile(
+                    onTap: () => _openEditDialog(context, payment),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            currencyFormat.format(payment.amount),
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: payment.isPaid
+                                  ? AppColors.success
+                                  : payment.isLate
+                                      ? AppColors.error
+                                      : AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        PaymentStatusBadge(status: payment.status),
+                      ],
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Échéance : ${dateFormat.format(payment.paymentDueDate)}',
+                            style: AppTextStyles.bodySmall,
+                          ),
+                          if (payment.paymentDate != null)
+                            Text(
+                              'Payé le : ${dateFormat.format(payment.paymentDate!)}',
+                              style: AppTextStyles.bodySmall,
+                            ),
+                          if (payment.paymentMethod != null)
+                            Text(
+                              'Méthode : ${payment.paymentMethod!.label}',
+                              style: AppTextStyles.bodySmall,
+                            ),
+                          if (payment.notes != null &&
+                              payment.notes!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                payment.notes!,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          color: AppColors.error),
+                      onPressed: () =>
+                          _confirmDelete(context, ref, payment),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
         ),
         Positioned(
           bottom: 16,
           right: 16,
           child: FloatingActionButton.small(
-            onPressed: () {
-              // TODO: Ajouter un paiement
-            },
+            onPressed: () => _openAddDialog(context),
             backgroundColor: AppColors.primary,
             child: const Icon(Icons.add, color: AppColors.white),
           ),
@@ -411,97 +559,23 @@ class _DocumentsTab extends StatelessWidget {
 
   final TenantEntity tenant;
 
+  /// Types de documents pertinents pour un locataire.
+  static const _tenantDocTypes = [
+    DocumentType.lease,
+    DocumentType.identity,
+    DocumentType.incomeProof,
+    DocumentType.propertySurvey,
+    DocumentType.receipt,
+    DocumentType.other,
+  ];
+
   @override
   Widget build(BuildContext context) {
-    // TODO: Charger les documents depuis le provider
-    final List<TenantDocumentEntity> documents = [];
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Telecharger un document
-            },
-            icon: const Icon(Icons.upload_file),
-            label: const Text('Ajouter un document'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              minimumSize: const Size(double.infinity, 44),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-        if (documents.isEmpty)
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.folder_open_outlined,
-                      size: 48, color: AppColors.disabled),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Aucun document',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: documents.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final doc = documents[index];
-                return ListTile(
-                  leading: Icon(
-                    _fileTypeIcon(doc.fileName),
-                    color: AppColors.primary,
-                  ),
-                  title: Text(doc.fileName, style: AppTextStyles.labelLarge),
-                  subtitle: Text(
-                    doc.documentType.label,
-                    style: AppTextStyles.bodySmall,
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.download, color: AppColors.primary),
-                    onPressed: () {
-                      // TODO: Telecharger le document
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
+    return DocumentsSection(
+      owner: DocumentOwner.tenant,
+      ownerId: tenant.id,
+      availableTypes: _tenantDocTypes,
     );
-  }
-
-  IconData _fileTypeIcon(String fileName) {
-    final ext = fileName.split('.').last.toLowerCase();
-    switch (ext) {
-      case 'pdf':
-        return Icons.picture_as_pdf;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-        return Icons.image;
-      case 'doc':
-      case 'docx':
-        return Icons.description;
-      default:
-        return Icons.insert_drive_file;
-    }
   }
 }
 

@@ -40,6 +40,10 @@ abstract final class ApiEndpoints {
   static const String loans = '/loans';
   static String loanById(String id) => '/loans/$id';
 
+  // ── Payments (Paiements de loyer) ─────────────────────────
+  static const String payments = '/payments';
+  static String paymentById(String id) => '/payments/$id';
+
   // ── Business (Gestion) ────────────────────────────────────
   static const String accounting = '/business/accounting';
   static const String contacts = '/business/contacts';

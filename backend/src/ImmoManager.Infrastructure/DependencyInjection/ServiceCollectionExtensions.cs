@@ -33,6 +33,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPropertyEventService, PropertyEventService>();
         services.AddScoped<ITenantService, TenantService>();
         services.AddScoped<ILoanService, LoanService>();
+        services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IFileStorageService, FileStorageService>();
+        services.AddScoped<ITenantDocumentService, TenantDocumentService>();
+        services.AddScoped<IPropertyDocumentService, PropertyDocumentService>();
 
         // Identity / Auth
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));

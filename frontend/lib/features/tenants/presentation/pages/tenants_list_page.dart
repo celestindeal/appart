@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:immo_manager/config/routes/app_routes.dart';
 import 'package:immo_manager/config/theme/app_colors.dart';
 import 'package:immo_manager/config/theme/app_text_styles.dart';
-import '../../domain/entities/tenant_entity.dart';
 import '../providers/tenant_provider.dart';
 import '../widgets/tenant_card.dart';
-import 'tenant_detail_page.dart';
-import 'tenant_form_page.dart';
 
 /// Page listant tous les locataires avec recherche et filtres.
 class TenantsListPage extends ConsumerWidget {
@@ -115,11 +114,9 @@ class TenantsListPage extends ConsumerWidget {
                       return TenantCard(
                         tenant: tenant,
                         onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  TenantDetailPage(tenantId: tenant.id),
-                            ),
+                          context.goNamed(
+                            RouteNames.tenantDetail,
+                            pathParameters: {'id': tenant.id},
                           );
                         },
                       );
@@ -158,11 +155,7 @@ class TenantsListPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const TenantFormPage(),
-            ),
-          );
+          context.goNamed(RouteNames.tenantCreate);
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: AppColors.white),

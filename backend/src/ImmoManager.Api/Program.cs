@@ -58,6 +58,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+// Sert les fichiers uploadés sous /uploads/**.
+app.UseStaticFiles();
 app.UseMiddleware<ImmoManager.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

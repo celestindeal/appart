@@ -13,6 +13,9 @@ import '../../../loans/presentation/pages/loan_form_page.dart';
 import '../../../loans/presentation/providers/loan_provider.dart';
 import '../../../tenants/domain/entities/tenant_entity.dart';
 import '../../../tenants/presentation/providers/tenant_provider.dart';
+import '../../../documents/data/datasources/document_remote_datasource.dart';
+import '../../../documents/domain/entities/document_entity.dart';
+import '../../../documents/presentation/widgets/documents_section.dart';
 import '../../domain/entities/property_entity.dart';
 import '../providers/property_provider.dart';
 
@@ -90,7 +93,7 @@ class PropertyDetailPage extends ConsumerWidget {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.pushNamed(
+                  onPressed: () => context.goNamed(
                     RouteNames.propertyEdit,
                     pathParameters: {'id': property.id},
                   ),
@@ -334,7 +337,7 @@ class PropertyDetailPage extends ConsumerWidget {
             children: [
               _buildSectionTitle('Appartements (${property.apartments.length})'),
               TextButton.icon(
-                onPressed: () => context.pushNamed(
+                onPressed: () => context.goNamed(
                   RouteNames.propertyCreate,
                   queryParameters: {'parentId': property.id},
                 ),
@@ -403,7 +406,7 @@ class PropertyDetailPage extends ConsumerWidget {
           style: AppTextStyles.caption,
         ),
         trailing: Icon(Icons.chevron_right, color: AppColors.textTertiary),
-        onTap: () => context.pushNamed(
+        onTap: () => context.goNamed(
           RouteNames.propertyDetail,
           pathParameters: {'id': apartment.id},
         ),
@@ -777,31 +780,21 @@ class PropertyDetailPage extends ConsumerWidget {
     );
   }
 
+  /// Types de documents pertinents pour un bien immobilier.
+  static const _propertyDocTypes = [
+    DocumentType.deedOfSale,
+    DocumentType.architecturalPlan,
+    DocumentType.propertySurvey,
+    DocumentType.lease,
+    DocumentType.receipt,
+    DocumentType.other,
+  ];
+
   Widget _buildDocumentsTab() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_open_outlined,
-            size: 64,
-            color: AppColors.textTertiary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Aucun document',
-            style: AppTextStyles.h4.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Les documents associés à ce bien\napparaîtront ici',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
+    return DocumentsSection(
+      owner: DocumentOwner.property,
+      ownerId: propertyId,
+      availableTypes: _propertyDocTypes,
     );
   }
 
@@ -983,12 +976,12 @@ class PropertyDetailPage extends ConsumerWidget {
   void _openTimelineItem(BuildContext context, _TimelineItem item) {
     switch (item.kind) {
       case _TimelineKind.tenant:
-        context.pushNamed(
+        context.goNamed(
           RouteNames.tenantDetail,
           pathParameters: {'id': item.id},
         );
       case _TimelineKind.renovation:
-        context.pushNamed(
+        context.goNamed(
           RouteNames.renovationDetail,
           pathParameters: {'id': item.id},
         );

@@ -161,7 +161,7 @@ class PurchaseProjectsPage extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          context.pushNamed(
+          context.goNamed(
             RouteNames.purchaseDetail,
             pathParameters: {'id': project.id},
           );

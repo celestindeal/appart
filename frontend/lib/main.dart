@@ -19,9 +19,13 @@ import 'features/properties/data/repositories/property_repository_impl.dart';
 import 'features/properties/presentation/providers/property_provider.dart';
 import 'features/loans/data/datasources/loan_remote_datasource.dart';
 import 'features/loans/presentation/providers/loan_provider.dart';
+import 'features/tenants/data/datasources/payment_remote_datasource.dart';
 import 'features/tenants/data/datasources/tenant_remote_datasource_impl.dart';
 import 'features/tenants/data/repositories/tenant_repository_impl.dart';
+import 'features/tenants/presentation/providers/payment_provider.dart';
 import 'features/tenants/presentation/providers/tenant_provider.dart';
+import 'features/documents/data/datasources/document_remote_datasource.dart';
+import 'features/documents/presentation/providers/document_provider.dart';
 
 /// Point d'entrée de l'application.
 void main() async {
@@ -63,6 +67,10 @@ void main() async {
 
   final loanDatasource = LoanRemoteDatasource(dio: dio);
 
+  final paymentDatasource = PaymentRemoteDatasource(dio: dio);
+
+  final documentDatasource = DocumentRemoteDatasource(dio: dio);
+
   // Container unique partagé entre l'intercepteur et l'arbre widget.
   final container = ProviderContainer(
     overrides: [
@@ -70,6 +78,8 @@ void main() async {
       propertyRepositoryProvider.overrideWithValue(propertyRepository),
       tenantRepositoryProvider.overrideWithValue(tenantRepository),
       loanRemoteDatasourceProvider.overrideWithValue(loanDatasource),
+      paymentRemoteDatasourceProvider.overrideWithValue(paymentDatasource),
+      documentRemoteDatasourceProvider.overrideWithValue(documentDatasource),
     ],
   );
 

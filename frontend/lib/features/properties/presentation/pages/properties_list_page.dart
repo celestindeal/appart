@@ -153,7 +153,7 @@ class PropertiesListPage extends ConsumerWidget {
                       child: PropertyCard(
                         property: property,
                         onTap: () {
-                          context.pushNamed(
+                          context.goNamed(
                             RouteNames.propertyDetail,
                             pathParameters: {'id': property.id},
                           );
@@ -193,7 +193,7 @@ class PropertiesListPage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.pushNamed(RouteNames.propertyCreate),
+        onPressed: () => context.goNamed(RouteNames.propertyCreate),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: AppColors.white),
       ),

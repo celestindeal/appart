@@ -2,6 +2,7 @@
 abstract final class AppConstants {
   // ── API ──────────────────────────────────────────────────
   static const String apiBaseUrl = 'http://localhost:5000/api';
+  static const String mediaBaseUrl = 'http://localhost:5000';
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // ── Storage Keys ─────────────────────────────────────────
