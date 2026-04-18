@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImmoManager.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+73fb0bd96ef4d0f5c767d498e4489178354f6ca5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0647c82c4aae199428a5ae194b12977fc833cd7a")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImmoManager.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImmoManager.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
