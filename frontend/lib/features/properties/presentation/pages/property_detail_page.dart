@@ -13,9 +13,6 @@ import '../../../loans/presentation/pages/loan_form_page.dart';
 import '../../../loans/presentation/providers/loan_provider.dart';
 import '../../../tenants/domain/entities/tenant_entity.dart';
 import '../../../tenants/presentation/providers/tenant_provider.dart';
-import '../../../documents/data/datasources/document_remote_datasource.dart';
-import '../../../documents/domain/entities/document_entity.dart';
-import '../../../documents/presentation/widgets/documents_section.dart';
 import '../../domain/entities/property_entity.dart';
 import '../providers/property_provider.dart';
 
@@ -83,7 +80,7 @@ class PropertyDetailPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: DefaultTabController(
-        length: 4,
+        length: 3,
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverAppBar(
@@ -171,7 +168,6 @@ class PropertyDetailPage extends ConsumerWidget {
                     Tab(text: 'Détails'),
                     Tab(text: 'Finances'),
                     Tab(text: 'Événements'),
-                    Tab(text: 'Documents'),
                   ],
                 ),
               ),
@@ -182,7 +178,6 @@ class PropertyDetailPage extends ConsumerWidget {
               _buildDetailsTab(context, ref, property),
               _buildFinancesTab(context, ref, property, tenants),
               _buildEventsTab(context, ref, property),
-              _buildDocumentsTab(),
             ],
           ),
         ),
@@ -777,24 +772,6 @@ class PropertyDetailPage extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  /// Types de documents pertinents pour un bien immobilier.
-  static const _propertyDocTypes = [
-    DocumentType.deedOfSale,
-    DocumentType.architecturalPlan,
-    DocumentType.propertySurvey,
-    DocumentType.lease,
-    DocumentType.receipt,
-    DocumentType.other,
-  ];
-
-  Widget _buildDocumentsTab() {
-    return DocumentsSection(
-      owner: DocumentOwner.property,
-      ownerId: propertyId,
-      availableTypes: _propertyDocTypes,
     );
   }
 

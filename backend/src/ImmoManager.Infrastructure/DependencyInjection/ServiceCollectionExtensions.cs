@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileStorageService, FileStorageService>();
         services.AddScoped<ITenantDocumentService, TenantDocumentService>();
         services.AddScoped<IPropertyDocumentService, PropertyDocumentService>();
+        services.AddScoped<IReminderService, ReminderService>();
 
         // Identity / Auth
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));

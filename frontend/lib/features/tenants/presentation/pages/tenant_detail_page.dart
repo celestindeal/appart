@@ -9,13 +9,12 @@ import 'package:immo_manager/config/theme/app_text_styles.dart';
 import '../../domain/entities/tenant_entity.dart';
 import '../../domain/entities/rent_payment_entity.dart';
 import '../../domain/entities/reminder_entity.dart';
-import '../../../documents/data/datasources/document_remote_datasource.dart';
-import '../../../documents/domain/entities/document_entity.dart';
-import '../../../documents/presentation/widgets/documents_section.dart';
 import '../providers/payment_provider.dart';
+import '../providers/reminder_provider.dart';
 import '../providers/tenant_provider.dart';
 import '../widgets/payment_form_dialog.dart';
 import '../widgets/payment_status_badge.dart';
+import '../widgets/reminder_form_dialog.dart';
 
 /// Page de detail d'un locataire avec onglets.
 class TenantDetailPage extends ConsumerWidget {
@@ -70,7 +69,7 @@ class _TenantDetailContent extends StatelessWidget {
         NumberFormat.currency(locale: 'fr_FR', symbol: '\u20ac');
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
@@ -165,7 +164,6 @@ class _TenantDetailContent extends StatelessWidget {
               tabs: [
                 Tab(text: 'Informations'),
                 Tab(text: 'Paiements'),
-                Tab(text: 'Documents'),
                 Tab(text: 'Rappels'),
               ],
             ),
@@ -175,7 +173,6 @@ class _TenantDetailContent extends StatelessWidget {
                 children: [
                   _InformationsTab(tenant: tenant),
                   _PaiementsTab(tenant: tenant),
-                  _DocumentsTab(tenant: tenant),
                   _RappelsTab(tenant: tenant),
                 ],
               ),
@@ -552,147 +549,265 @@ class _PaiementsTab extends ConsumerWidget {
   }
 }
 
-// ── Onglet Documents ────────────────────────────────────────
-
-class _DocumentsTab extends StatelessWidget {
-  const _DocumentsTab({required this.tenant});
-
-  final TenantEntity tenant;
-
-  /// Types de documents pertinents pour un locataire.
-  static const _tenantDocTypes = [
-    DocumentType.lease,
-    DocumentType.identity,
-    DocumentType.incomeProof,
-    DocumentType.propertySurvey,
-    DocumentType.receipt,
-    DocumentType.other,
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return DocumentsSection(
-      owner: DocumentOwner.tenant,
-      ownerId: tenant.id,
-      availableTypes: _tenantDocTypes,
-    );
-  }
-}
-
 // ── Onglet Rappels ──────────────────────────────────────────
 
-class _RappelsTab extends StatelessWidget {
+class _RappelsTab extends ConsumerWidget {
   const _RappelsTab({required this.tenant});
 
   final TenantEntity tenant;
 
-  @override
-  Widget build(BuildContext context) {
-    // TODO: Charger les rappels depuis le provider
-    final List<ReminderEntity> reminders = [];
+  Future<void> _openAddDialog(BuildContext context) async {
+    await ReminderFormDialog.show(
+      context,
+      tenantId: tenant.id,
+    );
+  }
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Ajouter un rappel
-            },
-            icon: const Icon(Icons.add_alarm),
-            label: const Text('Ajouter un rappel'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              minimumSize: const Size(double.infinity, 44),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+  Future<void> _openEditDialog(
+    BuildContext context,
+    ReminderEntity reminder,
+  ) async {
+    await ReminderFormDialog.show(
+      context,
+      tenantId: tenant.id,
+      reminder: reminder,
+    );
+  }
+
+  Future<void> _toggleComplete(
+    WidgetRef ref,
+    ReminderEntity reminder,
+  ) async {
+    try {
+      await ref.read(reminderActionsProvider).update(
+            reminder.copyWith(isCompleted: !reminder.isCompleted),
+          );
+    } catch (_) {}
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    ReminderEntity reminder,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer le rappel'),
+        content: const Text('Cette action est irréversible. Continuer ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
           ),
-        ),
-        if (reminders.isEmpty)
-          Expanded(
-            child: Center(
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(reminderActionsProvider).delete(
+            reminderId: reminder.id,
+            tenantId: tenant.id,
+          );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur : $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remindersAsync = ref.watch(remindersForTenantProvider(tenant.id));
+    final dateFormat = DateFormat('dd/MM/yyyy');
+
+    return Stack(
+      children: [
+        remindersAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none,
-                      size: 48, color: AppColors.disabled),
+                  const Icon(Icons.error_outline,
+                      size: 48, color: AppColors.error),
                   const SizedBox(height: 16),
-                  Text(
-                    'Aucun rappel',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  Text('Erreur de chargement',
+                      style: AppTextStyles.bodyMedium),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => ref
+                        .invalidate(remindersForTenantProvider(tenant.id)),
+                    child: const Text('Réessayer'),
                   ),
                 ],
               ),
             ),
-          )
-        else
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          data: (reminders) {
+            if (reminders.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.notifications_none,
+                        size: 48, color: AppColors.disabled),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Aucun rappel',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Appuyez sur + pour en ajouter un',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               itemCount: reminders.length,
               itemBuilder: (context, index) {
                 final reminder = reminders[index];
-                final dateFormat = DateFormat('dd/MM/yyyy');
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
                       color: reminder.isOverdue
                           ? AppColors.error
                           : AppColors.border,
                     ),
                   ),
-                  child: CheckboxListTile(
-                    value: reminder.isCompleted,
-                    onChanged: (value) {
-                      // TODO: Marquer comme complete
-                    },
-                    title: Text(
-                      reminder.title,
-                      style: AppTextStyles.labelLarge.copyWith(
-                        decoration: reminder.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(reminder.description,
-                            style: AppTextStyles.bodySmall),
-                        const SizedBox(height: 4),
-                        Text(
-                          dateFormat.format(reminder.reminderDate),
-                          style: AppTextStyles.caption.copyWith(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _openEditDialog(context, reminder),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: reminder.isCompleted,
+                            onChanged: (_) =>
+                                _toggleComplete(ref, reminder),
+                            activeColor: AppColors.primary,
+                          ),
+                          Icon(
+                            reminder.isOverdue
+                                ? Icons.warning_rounded
+                                : Icons.notifications_active_outlined,
                             color: reminder.isOverdue
                                 ? AppColors.error
-                                : AppColors.textTertiary,
+                                : AppColors.primary,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  reminder.title,
+                                  style:
+                                      AppTextStyles.labelLarge.copyWith(
+                                    decoration: reminder.isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: reminder.isCompleted
+                                        ? AppColors.textSecondary
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Text(
+                                      reminder.reminderType.label,
+                                      style: AppTextStyles.caption
+                                          .copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      dateFormat
+                                          .format(reminder.reminderDate),
+                                      style:
+                                          AppTextStyles.caption.copyWith(
+                                        color: reminder.isOverdue
+                                            ? AppColors.error
+                                            : AppColors.textTertiary,
+                                        fontWeight: reminder.isOverdue
+                                            ? FontWeight.w600
+                                            : null,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (reminder.description.isNotEmpty)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      reminder.description,
+                                      style: AppTextStyles.bodySmall
+                                          .copyWith(
+                                        color: AppColors.textSecondary,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: AppColors.error, size: 20),
+                            onPressed: () =>
+                                _confirmDelete(context, ref, reminder),
+                          ),
+                        ],
+                      ),
                     ),
-                    secondary: Icon(
-                      reminder.isOverdue
-                          ? Icons.warning_rounded
-                          : Icons.notifications_active_outlined,
-                      color: reminder.isOverdue
-                          ? AppColors.error
-                          : AppColors.primary,
-                    ),
-                    activeColor: AppColors.primary,
                   ),
                 );
               },
-            ),
+            );
+          },
+        ),
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton.small(
+            onPressed: () => _openAddDialog(context),
+            backgroundColor: AppColors.primary,
+            child: const Icon(Icons.add, color: AppColors.white),
           ),
+        ),
       ],
     );
   }

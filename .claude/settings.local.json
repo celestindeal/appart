@@ -52,7 +52,8 @@
       "Bash(mv lib/features/properties/presentation/pages/property_detail_page.dart.tmp lib/features/properties/presentation/pages/property_detail_page.dart)",
       "Bash(taskkill //F //PID 61132)",
       "Bash(taskkill //F //PID 20088)",
-      "Bash(taskkill //F //PID 33984)"
+      "Bash(taskkill //F //PID 33984)",
+      "Bash(taskkill //F //PID 18096)"
     ]
   }
 }

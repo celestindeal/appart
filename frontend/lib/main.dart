@@ -24,8 +24,9 @@ import 'features/tenants/data/datasources/tenant_remote_datasource_impl.dart';
 import 'features/tenants/data/repositories/tenant_repository_impl.dart';
 import 'features/tenants/presentation/providers/payment_provider.dart';
 import 'features/tenants/presentation/providers/tenant_provider.dart';
-import 'features/documents/data/datasources/document_remote_datasource.dart';
-import 'features/documents/presentation/providers/document_provider.dart';
+import 'features/tenants/data/datasources/reminder_remote_datasource.dart';
+import 'features/tenants/presentation/providers/reminder_provider.dart';
+
 
 /// Point d'entrée de l'application.
 void main() async {
@@ -69,7 +70,7 @@ void main() async {
 
   final paymentDatasource = PaymentRemoteDatasource(dio: dio);
 
-  final documentDatasource = DocumentRemoteDatasource(dio: dio);
+  final reminderDatasource = ReminderRemoteDatasource(dio: dio);
 
   // Container unique partagé entre l'intercepteur et l'arbre widget.
   final container = ProviderContainer(
@@ -79,7 +80,7 @@ void main() async {
       tenantRepositoryProvider.overrideWithValue(tenantRepository),
       loanRemoteDatasourceProvider.overrideWithValue(loanDatasource),
       paymentRemoteDatasourceProvider.overrideWithValue(paymentDatasource),
-      documentRemoteDatasourceProvider.overrideWithValue(documentDatasource),
+      reminderRemoteDatasourceProvider.overrideWithValue(reminderDatasource),
     ],
   );
 
